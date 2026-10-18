@@ -16,6 +16,7 @@ if str(ROOT) not in sys.path:
 from PySide6.QtWidgets import QApplication
 
 from gui import text as T
+from gui.i18n import tr, set_language
 from gui.job import JobRequest, suggested_output
 from gui.results import JobArtifacts
 from gui.runner import STAGES, PipelineRunner
@@ -88,13 +89,13 @@ class JobRequestTests(unittest.TestCase):
 
     def test_missing_and_identical_inputs_are_rejected(self):
         problems = self.request(teacher="").validate()
-        self.assertIn(T.VALIDATE_CHOOSE_RECORDING.format(label=T.LABEL_TEACHER_SHORT), problems)
+        self.assertIn(tr("validate_choose_recording").format(label=tr("label_teacher_short")), problems)
         problems = self.request(student=str(self.teacher)).validate()
-        self.assertIn(T.VALIDATE_SAME_FILE, problems)
+        self.assertIn(tr("validate_same_file"), problems)
 
     def test_out_of_range_option_is_rejected(self):
         problems = self.request(minimum_alignment_quality=1.5).validate()
-        self.assertTrue(any(T.ADVANCED_QUALITY in item for item in problems), problems)
+        self.assertTrue(any(tr("advanced_quality") in item for item in problems), problems)
 
     def test_reuse_analysis_requires_stored_artifacts(self):
         problems = self.request(skip_analysis=True).validate()
@@ -107,7 +108,7 @@ class JobRequestTests(unittest.TestCase):
 
     def test_analyze_only_and_skip_analysis_conflict(self):
         problems = self.request(analyze_only=True, skip_analysis=True).validate()
-        self.assertIn(T.VALIDATE_CONFLICT, problems)
+        self.assertIn(tr("validate_conflict"), problems)
 
     def test_argv_maps_every_option_to_a_cli_flag(self):
         request = self.request(onnx_device="cpu", vocoder_device="cpu", language="en",
@@ -252,12 +253,12 @@ class StageParsingTests(unittest.TestCase):
 
     def test_activity_detail_reaches_the_window(self):
         self.consume(WORKER_LOG)
-        self.assertIn(T.DETAIL_CHUNK.format(phase="歌词", track="教师", index=1, total=1), self.details)
-        self.assertIn(T.DETAIL_CHUNK.format(phase="音素", track="学生", index=1, total=1), self.details)
-        self.assertIn(T.DETAIL_PITCH.format(track="教师"), self.details)
-        self.assertIn(T.DETAIL_CHUNK.format(phase="音符", track="学生", index=1, total=1), self.details)
-        self.assertIn(T.DETAIL_LOADING_VOCODER.format(device="cuda"), self.details)
-        self.assertIn(T.DETAIL_RENDER.format(mode="full"), self.details)
+        self.assertIn(tr("detail_chunk").format(phase="歌词", track="教师", index=1, total=1), self.details)
+        self.assertIn(tr("detail_chunk").format(phase="音素", track="学生", index=1, total=1), self.details)
+        self.assertIn(tr("detail_pitch").format(track="教师"), self.details)
+        self.assertIn(tr("detail_chunk").format(phase="音符", track="学生", index=1, total=1), self.details)
+        self.assertIn(tr("detail_loading_vocoder").format(device="cuda"), self.details)
+        self.assertIn(tr("detail_render").format(mode="full"), self.details)
 
     def test_progress_advances_monotonically_and_ends_at_complete(self):
         self.consume(WORKER_LOG)
@@ -385,41 +386,41 @@ class ResultsTests(unittest.TestCase):
 
     def test_unresolved_status_is_not_reported_as_plain_success(self):
         headline, note = self.artifacts.summary()
-        self.assertEqual(headline, T.STATUS_UNRESOLVED[0])
+        self.assertEqual(headline, tr("status_unresolved"))
         self.assertIn("静音", note)
 
     def test_metrics_show_planned_and_measured_values_separately(self):
         values = dict(self.artifacts.metrics())
-        self.assertEqual(values[T.ROW_PLANNED_COVERAGE], "100.00%")
-        self.assertIn(f"{T.status_label('matched')} 16", values[T.ROW_UNIT_STATUS])
-        self.assertEqual(values[T.ROW_UNSUPPORTED_REGIONS], "4")
-        self.assertIn("322877", values[T.ROW_EXPORTED_LENGTH])
-        self.assertIn(T.ROW_LENGTH_EXACT, values[T.ROW_EXPORTED_LENGTH])
-        self.assertEqual(values[T.ROW_TEACHER_VOICED_COVERAGE], "97.85%")
+        self.assertEqual(values[tr("row_planned_coverage")], "100.00%")
+        self.assertIn(f"{T.status_label('matched')} 16", values[tr("row_unit_status")])
+        self.assertEqual(values[tr("row_unsupported_regions")], "4")
+        self.assertIn("322877", values[tr("row_exported_length")])
+        self.assertIn(tr("row_length_exact"), values[tr("row_exported_length")])
+        self.assertEqual(values[tr("row_teacher_voiced_coverage")], "97.85%")
 
     def test_pitch_rows_carry_the_measured_numbers(self):
         values = dict(self.artifacts.pitch_rows())
-        error_row = values[T.PITCH_ROW_ERROR.format(label=T.PITCH_VS_TEACHER)]
+        error_row = values[tr("pitch_row_error").format(label=tr("pitch_vs_teacher"))]
         self.assertIn("5.83 音分", error_row)
         self.assertIn("69.61 音分", error_row)
-        self.assertEqual(values[T.PITCH_ROW_RECALL.format(label=T.PITCH_VS_TEACHER)], "98.92%")
+        self.assertEqual(values[tr("pitch_row_recall").format(label=tr("pitch_vs_teacher"))], "98.92%")
 
     def test_timing_rows_appear_only_when_remeasured(self):
         values = dict(self.artifacts.timing_rows())
-        self.assertEqual(values[T.TIMING_ROW_COMPARED], "16 / 17")
-        self.assertIn("0.004 秒", values[T.TIMING_ROW_ONSET])
+        self.assertEqual(values[tr("timing_row_compared")], "16 / 17")
+        self.assertIn("0.004 秒", values[tr("timing_row_onset")])
         (self.output / "timing.verification.json").unlink()
         self.assertEqual(self.artifacts.timing_rows(), [])
 
     def test_warnings_are_deduplicated_and_include_limitations(self):
         warnings = self.artifacts.warnings()
         self.assertEqual(warnings.count("Teacher analysis warning."), 1)
-        self.assertTrue(any(item.startswith(T.WARNING_LIMIT_PREFIX) for item in warnings))
+        self.assertTrue(any(item.startswith(tr("warning_limit_prefix")) for item in warnings))
         self.assertTrue(any("歌词可能不一致" in item for item in warnings))
 
     def test_failed_structural_check_is_surfaced_first(self):
         self.write("verification.json", {"structural_checks_passed": False, "warnings": ["other"]})
-        self.assertEqual(self.artifacts.warnings()[0], T.WARNING_STRUCTURAL_FAILURE)
+        self.assertEqual(self.artifacts.warnings()[0], tr("warning_structural_failure"))
 
     def test_correspondence_rows_skip_plain_silence(self):
         rows = self.artifacts.regions()
@@ -432,10 +433,10 @@ class ResultsTests(unittest.TestCase):
         # alignment and verification tabs' own contents.
         empty = JobArtifacts(self.output / "no_manifest")
         (self.output / "no_manifest").mkdir(exist_ok=True)
-        self.assertEqual(empty.summary(), (T.SUMMARY_NO_JOB, T.SUMMARY_NO_JOB_NOTE))
+        self.assertEqual(empty.summary(), (tr("summary_no_job"), tr("summary_no_job_note")))
         (self.output / "no_manifest" / "alignment.json").write_text("{}", encoding="utf-8")
         headline, note = empty.summary()
-        self.assertEqual(headline, T.STATUS_NO_MANIFEST_WITH_ARTIFACTS)
+        self.assertEqual(headline, tr("status_no_manifest_with_artifacts"))
         self.assertIn("job.json", note)
 
     def test_missing_artifacts_are_reported_not_invented(self):
@@ -445,14 +446,14 @@ class ResultsTests(unittest.TestCase):
         self.assertEqual(empty.available_audio(), [])
         self.assertIsNone(empty.corrected_path())
         self.assertIsNone(empty.report_path())
-        self.assertEqual(empty.summary(), (T.SUMMARY_NO_JOB, T.SUMMARY_NO_JOB_NOTE))
+        self.assertEqual(empty.summary(), (tr("summary_no_job"), tr("summary_no_job_note")))
 
     def test_corrupt_artifact_does_not_break_the_panel(self):
         (self.output / "alignment.json").write_text("{not json", encoding="utf-8")
         # The unreadable file is skipped; values from the intact ones still show.
         values = dict(self.artifacts.metrics())
         self.assertNotIn("Planned lyric coverage", values)
-        self.assertEqual(values[T.ROW_TEACHER_VOICED_COVERAGE], "97.85%")
+        self.assertEqual(values[tr("row_teacher_voiced_coverage")], "97.85%")
         self.assertEqual(self.artifacts.regions(), [])
 
 
@@ -542,12 +543,11 @@ class TranslationTests(unittest.TestCase):
         self.assertEqual(T.job_error_text("An entirely new failure."), "An entirely new failure.")
 
     def test_the_window_shows_no_english_interface_labels(self):
-        from gui.text import WINDOW_TITLE
-        self.assertEqual(T.WINDOW_TITLE, WINDOW_TITLE)
-        for value in (T.BUTTON_RUN, T.BUTTON_CANCEL, T.TAB_LOG, T.TAB_RESULTS,
-                      T.GROUP_RECORDINGS, T.GROUP_OPTIONS, T.CHECK_TIMING, T.LABEL_PITCH_MODE,
-                      T.CHECK_PITCH_MAP, T.DETAIL_NO_JOB, T.WARNING_PLACEHOLDER,
-                      *T.PITCH_MODE_LABELS):
+        set_language("zh")
+        for value in (tr("window_title"), tr("button_run"), tr("button_cancel"), tr("tab_log"),
+                      tr("tab_results"), tr("card_recordings"), tr("card_options"), tr("check_timing"),
+                      tr("label_pitch_mode"), tr("check_pitch_map"), tr("detail_no_job"),
+                      tr("warning_placeholder"), *T.pitch_mode_labels()):
             self.assertRegex(value, r"[一-鿿]", value)
 
 
@@ -649,7 +649,7 @@ class WindowSmokeTests(unittest.TestCase):
         self.window.refresh_results()
         metrics = {self.window.metric_table.item(row, 0).text()
                    for row in range(self.window.metric_table.rowCount())}
-        self.assertIn(T.ROW_PLANNED_COVERAGE, metrics)
+        self.assertIn(tr("row_planned_coverage"), metrics)
         self.assertTrue(self.window.region_table.rowCount() > 0)
         self.window.output_edit.setText(str(ROOT / "outputs" / "long_hard"))
         self.window.refresh_results()
@@ -658,10 +658,10 @@ class WindowSmokeTests(unittest.TestCase):
         # Opening the window on a finished job must show it; the pipeline is untouched.
         self.window.output_edit.setText(str(ROOT / "outputs" / "short"))
         self.window.refresh_results()
-        self.assertIn(T.SUMMARY_CORRECTED_PREFIX, self.window.summary_label.text())
+        self.assertIn(tr("summary_corrected_prefix"), self.window.summary_label.text())
         self.assertGreater(self.window.audio_combo.count(), 0)
         self.assertTrue(self.window.open_report_button.isEnabled())
-        self.assertEqual(self.window.audio_combo.itemText(2), T.AUDIO_CORRECTED)
+        self.assertEqual(self.window.audio_combo.itemText(2), tr("audio_corrected"))
 
     def test_log_view_shows_worker_output(self):
         self.window._append_log("2026-10-15 21:20:07,954 INFO Transcribing teacher chunk 1/1.")
@@ -673,6 +673,47 @@ class WindowSmokeTests(unittest.TestCase):
         # A negative value (unknown progress) must not show as a negative bar.
         self.window._update_progress(-1)
         self.assertEqual(self.window.progress_bar.value(), 0)
+
+
+class NavigationTests(unittest.TestCase):
+    """The icon sidebar must expose the three pages and switch between them."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.application = QApplication.instance() or QApplication([])
+
+    def setUp(self):
+        from gui.window import MainWindow
+        self.window = MainWindow()
+        self.addCleanup(self.window.deleteLater)
+
+    def test_three_pages_are_registered(self):
+        names = [page.objectName() for page in
+                 (self.window.correction, self.window.results, self.window.settings)]
+        self.assertEqual(names, ["correctionInterface", "resultsInterface", "settingsInterface"])
+        for name in names:
+            self.assertIsNotNone(self.window.navigationInterface.widget(name))
+
+    def test_selecting_a_page_switches_the_stack(self):
+        self.window.navigationInterface.setCurrentItem(self.window.settings.objectName())
+        self.assertIs(self.window.stackedWidget.currentWidget(), self.window.settings)
+        self.window.navigationInterface.setCurrentItem(self.window.correction.objectName())
+        self.assertIs(self.window.stackedWidget.currentWidget(), self.window.correction)
+
+    def test_theme_switch_keeps_the_window_alive(self):
+        for value in ("dark", "light", "auto"):
+            self.window.settings.apply_theme(value)
+            self.assertEqual(self.window.settings.theme(), value)
+
+    def test_language_switch_retranslates_the_interface(self):
+        self.window.settings.language_combo.setCurrentIndex(
+            self.window.settings.language_combo.findData("en"))
+        self.assertEqual(tr("button_run"), "Run")
+        self.assertEqual(self.window.run_button.text(), "Run")
+        self.assertEqual(tr("window_title"), self.window.windowTitle())
+        self.window.settings.language_combo.setCurrentIndex(
+            self.window.settings.language_combo.findData("zh"))
+        self.assertEqual(self.window.run_button.text(), "开始")
 
 
 if __name__ == "__main__":

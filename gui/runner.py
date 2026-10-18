@@ -12,9 +12,10 @@ from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, Signal
 
 from application.artifacts import ROOT
 from gui import text as T
+from gui.i18n import tr
 
 # Ordered stages as the pipeline runs them: (key, label).
-STAGES: tuple[tuple[str, str], ...] = T.STAGE_LABELS
+STAGES: tuple[tuple[str, str], ...] = T.stage_labels()
 
 # Percent shown when each stage has just finished; correspondence runs in-process
 # between two workers and is much shorter than analysis or synthesis.
@@ -50,7 +51,7 @@ _CHUNK_LABELS = {"Transcribing": "Lyrics", "Aligning": "Phonemes", "Detecting no
 # Log text that carries values is rebuilt in Chinese from the parts the window
 # already parses, so no worker message format has to change.
 def _track(value: str) -> str:
-    return T.STAGE_TRACK_LABELS.get(value, value)
+    return T.stage_track_labels().get(value, value)
 _PITCH = re.compile(r"^Extracting continuous pitch from (\w+)\.$")
 
 # Analysis phases in the order analyze_pair performs them, each with the share of
@@ -141,7 +142,7 @@ class PipelineRunner(QObject):
         process.errorOccurred.connect(self._on_error)
         self._process = process
         self._active = True
-        self.detail.emit(T.DETAIL_STARTING)
+        self.detail.emit(tr("detail_starting"))
         process.start()
 
     def cancel(self) -> None:
@@ -150,7 +151,7 @@ class PipelineRunner(QObject):
             return
         self._cancelled = True
         pid = int(self._process.processId())
-        self.detail.emit(T.DETAIL_CANCELLING)
+        self.detail.emit(tr("detail_cancelling"))
         threading.Thread(target=self._kill_tree, args=(pid,), daemon=True).start()
 
     @staticmethod
@@ -222,14 +223,14 @@ class PipelineRunner(QObject):
         if chunk:
             phase, track = chunk.group(1), chunk.group(2)
             index, total = int(chunk.group(3)), int(chunk.group(4))
-            self.detail.emit(T.DETAIL_CHUNK.format(
-                phase=T.PHASE_LABELS[_CHUNK_LABELS[phase]], track=_track(track),
+            self.detail.emit(tr("detail_chunk").format(
+                phase=T.phase_labels()[_CHUNK_LABELS[phase]], track=_track(track),
                 index=index, total=total))
             self._analysis_percent(phase, track, index / max(1, total))
             return
         pitch = _PITCH.match(message)
         if pitch:
-            self.detail.emit(T.DETAIL_PITCH.format(track=_track(pitch.group(1))))
+            self.detail.emit(tr("detail_pitch").format(track=_track(pitch.group(1))))
             self._analysis_percent("pitch", pitch.group(1), 1.0)
             return
         for pattern, replacement in _DETAIL:
@@ -238,11 +239,11 @@ class PipelineRunner(QObject):
                 continue
             value = match.group(1)
             if replacement == r"Continuous pitch: \1":
-                self.detail.emit(T.DETAIL_PITCH.format(track=_track(value)))
+                self.detail.emit(tr("detail_pitch").format(track=_track(value)))
             elif replacement == r"Rendering \1":
-                self.detail.emit(T.DETAIL_RENDER.format(mode=value))
+                self.detail.emit(tr("detail_render").format(mode=value))
             else:
-                self.detail.emit(T.DETAIL_LOADING_VOCODER.format(device=value))
+                self.detail.emit(tr("detail_loading_vocoder").format(device=value))
             return
 
     def _analysis_percent(self, phase: str, track: str, fraction: float) -> None:
@@ -254,7 +255,7 @@ class PipelineRunner(QObject):
 
     def _on_error(self, error: QProcess.ProcessError) -> None:
         if error == QProcess.ProcessError.FailedToStart:
-            self._emit_finish(-1, T.STATUS_FAILED[0])
+            self._emit_finish(-1, tr("status_failed"))
 
     def _on_finished(self, exit_code: int, status: QProcess.ExitStatus) -> None:
         self._read()  # drain anything written just before exit
@@ -262,7 +263,7 @@ class PipelineRunner(QObject):
         self._tail = ""
         if trailing:
             self.line.emit(trailing)
-        error = T.DIALOG_PIPELINE_FAILED if status == QProcess.ExitStatus.CrashExit else ""
+        error = tr("dialog_pipeline_failed") if status == QProcess.ExitStatus.CrashExit else ""
         self._emit_finish(exit_code, error)
 
     def _emit_finish(self, exit_code: int, error: str) -> None:

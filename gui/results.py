@@ -4,24 +4,25 @@ from pathlib import Path
 
 from application.artifacts import read_json
 from gui import text as T
+from gui.i18n import tr
 
 # Output files offered for playback, in the order the report presents them.
 AUDIO_FILES: tuple[tuple[str, str], ...] = (
-    (T.AUDIO_TEACHER, "teacher.reference.wav"),
-    (T.AUDIO_STUDENT, "student.reference.wav"),
-    (T.AUDIO_CORRECTED, "student.corrected.wav"),
-    (T.AUDIO_IDENTITY, "student.identity.wav"),
-    (T.AUDIO_PITCH_ONLY, "student.pitch_only.wav"),
-    (T.AUDIO_TIME_ONLY, "student.time_only.wav"),
+    ("audio_teacher", "teacher.reference.wav"),
+    ("audio_student", "student.reference.wav"),
+    ("audio_corrected", "student.corrected.wav"),
+    ("audio_identity", "student.identity.wav"),
+    ("audio_pitch_only", "student.pitch_only.wav"),
+    ("audio_time_only", "student.time_only.wav"),
 )
 
-STATUS_SUMMARY = {
-    "completed": T.STATUS_COMPLETED,
-    "completed_with_unresolved": T.STATUS_UNRESOLVED,
-    "analysis_complete": T.STATUS_ANALYSIS_ONLY,
-    "failed": T.STATUS_FAILED,
-    "cancelled": T.STATUS_CANCELLED,
-    "running": T.STATUS_RUNNING,
+STATUS_KEYS = {
+    "completed": "status_completed",
+    "completed_with_unresolved": "status_unresolved",
+    "analysis_complete": "status_analysis_only",
+    "failed": "status_failed",
+    "cancelled": "status_cancelled",
+    "running": "status_running",
 }
 
 
@@ -41,7 +42,7 @@ def _cents(value) -> str:
 
 def _seconds(value) -> str:
     try:
-        return T.VALUE_SECONDS.format(value=float(value))
+        return tr("value_seconds").format(value=float(value))
     except (TypeError, ValueError):
         return "—"
 
@@ -62,7 +63,7 @@ class JobArtifacts:
         self.output = Path(output)
 
     def available_audio(self) -> list[tuple[str, Path]]:
-        return [(label, self.output / name) for label, name in AUDIO_FILES
+        return [(tr(key), self.output / name) for key, name in AUDIO_FILES
                 if (self.output / name).is_file()]
 
     def report_path(self) -> Path | None:
@@ -85,14 +86,15 @@ class JobArtifacts:
             readable = any((self.output / name).is_file() for name in (
                 "alignment.json", "verification.json", "render.json",
                 "teacher.analysis.json", "student.analysis.json"))
-            return ((T.STATUS_NO_MANIFEST_WITH_ARTIFACTS if readable
-                     else T.SUMMARY_NO_JOB),
-                    T.STATUS_NO_MANIFEST_NOTE if readable else T.SUMMARY_NO_JOB_NOTE)
+            return ((tr("status_no_manifest_with_artifacts") if readable
+                     else tr("summary_no_job")),
+                    tr("status_no_manifest_note") if readable else tr("summary_no_job_note"))
         status = job.get("status", "unknown")
-        headline, note = STATUS_SUMMARY.get(status, (T.STATUS_UNKNOWN, T.STATUS_UNKNOWN_NOTE))
-        if status == "running":
-            note = T.STATUS_RUNNING_NOTE
-        return headline, note
+        key = STATUS_KEYS.get(status)
+        if key is None:
+            return tr("status_unknown"), tr("status_unknown_note")
+        note = tr("status_running_note") if status == "running" else tr(f"{key}_note")
+        return tr(key), note
 
     def metrics(self) -> list[tuple[str, str]]:
         plan = _read(self.output / "alignment.json")
@@ -102,24 +104,24 @@ class JobArtifacts:
         if counts:
             rendered = "，".join(f"{T.status_label(key)} {value}"
                                     for key, value in sorted(counts.items()))
-            rows.append((T.ROW_LYRIC_UNITS, T.ROW_LYRIC_UNITS_VALUE.format(
+            rows.append((tr("row_lyric_units"), tr("row_lyric_units_value").format(
                 teacher=metrics.get("teacher_unit_count", "—"),
                 student=metrics.get("student_unit_count", "—"))))
-            rows.append((T.ROW_UNIT_STATUS, rendered))
+            rows.append((tr("row_unit_status"), rendered))
         if metrics:
-            rows.append((T.ROW_PLANNED_COVERAGE, _ratio(metrics.get("lyric_coverage"))))
-            rows.append((T.ROW_SEMANTIC_MATCH, _ratio(metrics.get("semantic_match_rate"))))
-            rows.append((T.ROW_UNSUPPORTED_REGIONS,
+            rows.append((tr("row_planned_coverage"), _ratio(metrics.get("lyric_coverage"))))
+            rows.append((tr("row_semantic_match"), _ratio(metrics.get("semantic_match_rate"))))
+            rows.append((tr("row_unsupported_regions"),
                          str(metrics.get("unsupported_region_count", "—"))))
-            rows.append((T.ROW_AMBIGUOUS_MATCHES, str(metrics.get("ambiguous_match_count", "—"))))
+            rows.append((tr("row_ambiguous_matches"), str(metrics.get("ambiguous_match_count", "—"))))
         coverage = verification.get("coverage", {})
         if coverage:
-            rows.append((T.ROW_TEACHER_VOICED_COVERAGE,
+            rows.append((tr("row_teacher_voiced_coverage"),
                          _ratio(coverage.get("semantic_teacher_voiced_coverage"))))
         audio = verification.get("audio", {})
         if audio:
-            state = T.ROW_LENGTH_EXACT if audio.get("sample_count_exact") else T.ROW_LENGTH_MISMATCH
-            rows.append((T.ROW_EXPORTED_LENGTH, T.ROW_LENGTH_VALUE.format(
+            state = tr("row_length_exact") if audio.get("sample_count_exact") else tr("row_length_mismatch")
+            rows.append((tr("row_exported_length"), tr("row_length_value").format(
                 count=audio.get("sample_count", "—"), state=state)))
         return rows
 
@@ -128,23 +130,23 @@ class JobArtifacts:
 
         With register mapping, absolute teacher pitch is not the aimed reference."""
         verification = _read(self.output / "verification.json")
-        sections = [(T.PITCH_VS_TEACHER,
+        sections = [(tr("pitch_vs_teacher"),
                      verification.get("actual_vs_teacher", {}).get("all_reference_frames", {}))]
         relative = verification.get("actual_vs_teacher_relative", {}).get("all_reference_frames", {})
         if relative:
-            sections.append((T.PITCH_VS_TEACHER_REGISTER, relative))
-        sections.append((T.PITCH_VS_TARGET,
+            sections.append((tr("pitch_vs_teacher_register"), relative))
+        sections.append((tr("pitch_vs_target"),
                          verification.get("actual_vs_render_target", {}).get("all_target_frames", {})))
         rows: list[tuple[str, str]] = []
         for label, frames in sections:
             if not frames:
                 continue
-            rows.append((T.PITCH_ROW_ERROR.format(label=label),
-                         T.PITCH_ROW_VALUE.format(
+            rows.append((tr("pitch_row_error").format(label=label),
+                         tr("pitch_row_value").format(
                              median=_cents(frames.get("median_absolute_cents")),
                              p95=_cents(frames.get("p95_absolute_cents")),
                              frames=frames.get("joint_voiced_frames", "—"))))
-            rows.append((T.PITCH_ROW_RECALL.format(label=label),
+            rows.append((tr("pitch_row_recall").format(label=label),
                          _ratio(frames.get("voicing_recall"))))
         return rows
 
@@ -153,15 +155,15 @@ class JobArtifacts:
         coverage = timing.get("coverage", {})
         if not coverage:
             return []
-        rows = [(T.TIMING_ROW_COMPARED, T.TIMING_ROW_COMPARED_VALUE.format(
+        rows = [(tr("timing_row_compared"), tr("timing_row_compared_value").format(
                      reliable=coverage.get("reliable_exact_match_count", "—"),
                      total=coverage.get("teacher_unit_count", "—"))),
-                (T.TIMING_ROW_COVERAGE,
+                (tr("timing_row_coverage"),
                  _ratio(coverage.get("within_tolerance_ratio_of_all_teacher_units")))]
         errors = timing.get("reliable_boundary_errors", {})
-        for edge, label in (("onset", T.TIMING_ROW_ONSET), ("offset", T.TIMING_ROW_OFFSET)):
+        for edge, label in (("onset", tr("timing_row_onset")), ("offset", tr("timing_row_offset"))):
             if errors.get(edge):
-                rows.append((label, T.TIMING_ROW_ERROR_VALUE.format(
+                rows.append((label, tr("timing_row_error_value").format(
                     mean=_seconds(errors[edge].get("mean_absolute_ms", 0) / 1000),
                     p95=_seconds(errors[edge].get("p95_absolute_ms", 0) / 1000))))
         return rows
@@ -179,10 +181,10 @@ class JobArtifacts:
                 if item not in collected:
                     collected.append(item)
         if verification and not verification.get("structural_checks_passed", True):
-            collected.insert(0, T.WARNING_STRUCTURAL_FAILURE)
+            collected.insert(0, tr("warning_structural_failure"))
         if verification and verification.get("limitations"):
             for item in T.warning_list(verification["limitations"]):
-                labelled = f"{T.WARNING_LIMIT_PREFIX}{item}"
+                labelled = f"{tr("warning_limit_prefix")}{item}"
                 if labelled not in collected:
                     collected.append(labelled)
         return collected
@@ -208,35 +210,35 @@ class JobArtifacts:
         experiment = render.get("experiments", {}).get("full", {})
         rows: list[tuple[str, str]] = []
         if render.get("device"):
-            rows.append((T.ROW_SYNTHESIS_DEVICE, str(render["device"])))
+            rows.append((tr("row_synthesis_device"), str(render["device"])))
         if experiment:
-            rows.append((T.ROW_RENDERED_RATIO, _ratio(experiment.get("rendered_sample_ratio"))))
-            rows.append((T.ROW_VOICED_RATIO, _ratio(experiment.get("voiced_frame_ratio"))))
-            rows.append((T.ROW_TIMING_CHANGED,
-                         T.VALUE_YES if experiment.get("timing_changed") else T.VALUE_NO))
+            rows.append((tr("row_rendered_ratio"), _ratio(experiment.get("rendered_sample_ratio"))))
+            rows.append((tr("row_voiced_ratio"), _ratio(experiment.get("voiced_frame_ratio"))))
+            rows.append((tr("row_timing_changed"),
+                         tr("value_yes") if experiment.get("timing_changed") else tr("value_no")))
             policy = experiment.get("pitch_policy")
             if policy:
-                rows.append((T.ROW_PITCH_POLICY, T.policy_label(policy)))
+                rows.append((tr("row_pitch_policy"), T.policy_label(policy)))
             register = experiment.get("register_pitch", {})
             if register.get("placement") == "per_word":
                 # Adaptive placement never moves the contour as a whole, so the
                 # constant is not the interesting number: the measured register,
                 # which anchors the note levels the words are placed on, is.
-                rows.append((T.ROW_REGISTER_OFFSET, T.VALUE_SEMITONES.format(
+                rows.append((tr("row_register_offset"), tr("value_semitones").format(
                     value=float(register.get("offset_cents", 0)) / 100)))
-                rows.append((T.ROW_NOTE_SHIFTS, T.ROW_NOTE_SHIFTS_VALUE.format(
+                rows.append((tr("row_note_shifts"), tr("row_note_shifts_value").format(
                     moved=int(register.get("note_shift_applied_count", 0) or 0),
                     measured=int(register.get("note_shift_measured_count", 0) or 0))))
             elif register.get("applied"):
-                rows.append((T.ROW_REGISTER_OFFSET, T.VALUE_SEMITONES.format(
+                rows.append((tr("row_register_offset"), tr("value_semitones").format(
                     value=float(register.get("contour_shift_cents", 0)) / 100)))
-            rows.append((T.ROW_MUTED_REGIONS, str(experiment.get("muted_region_count", "—"))))
-            rows.append((T.ROW_ACOUSTIC_TRANSITIONS,
+            rows.append((tr("row_muted_regions"), str(experiment.get("muted_region_count", "—"))))
+            rows.append((tr("row_acoustic_transitions"),
                          str(len(experiment.get("acoustic_transitions", [])))))
         if render.get("peak_cuda_memory_bytes"):
-            rows.append((T.ROW_PEAK_MEMORY,
+            rows.append((tr("row_peak_memory"),
                          f"{render['peak_cuda_memory_bytes'] / (1024 ** 2):.1f} MiB"))
         job = self.job()
         if job.get("elapsed_seconds"):
-            rows.append((T.ROW_JOB_TIME, _seconds(job["elapsed_seconds"])))
+            rows.append((tr("row_job_time"), _seconds(job["elapsed_seconds"])))
         return rows

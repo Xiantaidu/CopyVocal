@@ -2,266 +2,50 @@ from __future__ import annotations
 
 import re
 
-WINDOW_TITLE = "CopyVocal 人声校正"
-GROUP_RECORDINGS = "录音文件"
-GROUP_OPTIONS = "选项"
-GROUP_ADVANCED = "高级"
-GROUP_PROGRESS = "进度"
-LABEL_TEACHER = "教师录音（目标）"
-LABEL_STUDENT = "学生录音（待校正）"
-LABEL_OUTPUT = "输出目录"
-BUTTON_BROWSE = "浏览…"
-BUTTON_RUN = "开始"
-BUTTON_CANCEL = "取消"
-BUTTON_PLAY = "播放"
-BUTTON_STOP = "停止"
-BUTTON_OPEN_REPORT = "打开报告"
-BUTTON_OPEN_OUTPUT = "打开输出文件夹"
-HINT_INPUTS = ("把音频文件拖到窗口上，或用上面的按钮选择。输入应为分离后的、以单声部人声为主的录音；"
-               "伴奏会干扰分析。")
-LABEL_LYRIC_BACKEND = "歌词识别后端"
-LABEL_VOCODER_DEVICE = "声码器设备"
-LABEL_LANGUAGE = "语言"
-LABEL_LISTENING = "试听"
+from gui.i18n import tr
 
-TOOLTIP_ONNX = "DirectML 使用 GPU 运行歌词模型；CPU 更慢但总能工作。"
-TOOLTIP_VOCODER = "auto 在有 CUDA 时使用 GPU，否则使用 CPU。"
 
-CHECK_GAME = "提取音符（可选 MIDI 分析）"
-CHECK_EXPERIMENTS = "输出 A/B 对照（identity / 仅音高 / 仅节奏）"
-CHECK_VERIFY = "校验导出波形"
-CHECK_VERIFY_TIMING = "重新测量输出词边界（较慢的 ASR/TiFA 流程）"
-CHECK_ANALYZE_ONLY = "只做分析（不合成）"
-CHECK_SKIP_ANALYSIS = "复用输出目录中已有的分析结果"
-CHECK_FALLBACK = "允许低置信度的声学兜底对齐"
-CHECK_TIMING = "改变节奏（学生节奏 → 教师节奏）"
-LABEL_PITCH_MODE = "音高："
-PITCH_MODE_LABELS = ("关闭", "拉到教师音高", "适应模式")
+def stage_labels() -> tuple[tuple[str, str], ...]:
+    """Stage keys with their labels in the active language."""
+    return tuple(
+        (key, tr(f"stage_{key}"))
+        for key in ("analysis", "alignment", "render", "verification", "timing_verification", "review")
+    )
+
+
+def stage_track_labels() -> dict[str, str]:
+    return {"teacher": tr("track_teacher"), "student": tr("track_student")}
+
+
+def phase_labels() -> dict[str, str]:
+    return {"Lyrics": tr("phase_lyrics"), "Phonemes": tr("phase_phonemes"), "Notes": tr("phase_notes")}
+
+
+def pitch_mode_labels() -> tuple[str, ...]:
+    return (tr("pitch_mode_off"), tr("pitch_mode_teacher"), tr("pitch_mode_adaptive"))
+
+
 PITCH_MODE_VALUES = ("off", "teacher", "adaptive")
-CHECK_PITCH_MAP = "改变 pitch 曲线（使用教师的滑音与颤音）"
-AXIS_HINT = ("三项互相独立。「音高」是关闭 / 拉到教师音高 / 适应模式的三选一，「改变 pitch 曲线」决定用谁的音高走向；"
-             "音高关闭时完全不动音高，只改节奏。")
 
-TOOLTIP_CHECK_GAME = "用 GAME 额外提取音符，写入 MIDI 供检视；不影响校正结果。"
-TOOLTIP_CHECK_EXPERIMENTS = "额外输出三个对照文件，便于判断每一步改动的影响。"
-TOOLTIP_CHECK_VERIFY = "对导出音频重新测量音高与长度，并写入 verification.json。"
-TOOLTIP_CHECK_VERIFY_TIMING = "对输出音频再跑一次歌词识别与强制对齐，用来核对词边界；耗时较长。"
-TOOLTIP_CHECK_ANALYZE_ONLY = "只生成分析文件，不合成音频。"
-TOOLTIP_CHECK_SKIP_ANALYSIS = "直接使用输出目录里的分析产物。它不会因为分析设置或算法变化而重跑分析。"
-TOOLTIP_CHECK_FALLBACK = "允许在没有歌词对应的有声区段使用纯声学（活动度）对齐，结果可信度较低。"
-TOOLTIP_CHECK_TIMING = ("把学生的时间轴对齐到教师的词与音符边界。\n"
-                        "不勾选则保留学生自己的时间轴，只改音高。")
-TOOLTIP_PITCH_MODE = ("关闭：音高完全按学生原样保留，一个采样都不动。\n"
-                      "拉到教师音高：把学生整体移到教师的音区，用实测的音区差作为一个常数；"
-                      "唱得比教师低或高时不会被留在本嗓，而是被拽到教师的高度。\n"
-                      "适应模式：逐词对到教师的音级，但整个旋律仍落在学生自己的音区，"
-                      "所以既能纠错音，又不会被拽出本嗓。勾选曲线时改为整条教师曲线平移到学生音区。")
-TOOLTIP_CHECK_PITCH_MAP = ("勾选后使用教师的连续音高曲线，滑音、颤音与音间过渡都来自教师。\n"
-                           "不勾选则保留学生自己的音高走向。\n"
-                           "「拉到教师音高」：不勾=学生曲线落到教师音区，勾=教师曲线与教师音区。\n"
-                           "「适应模式」：不勾=学生曲线逐词对到教师音级，勾=整条教师曲线平移到学生音区。")
 
-ADVANCED_MAX_CHUNK = "单块最大长度"
-ADVANCED_CONTEXT = "分块上下文长度"
-ADVANCED_QUALITY = "最低对应质量"
-ADVANCED_STRETCH = "最大拉伸倍数"
-ADVANCED_FLOOR = "声码器对数下限"
-TOOLTIP_MAX_CHUNK = "限制每个分析分块的长度，包含上下文。"
-TOOLTIP_CONTEXT = "为彼此不相连的分块保留上下文。"
-TOOLTIP_QUALITY = "低于该置信度的对应关系不参与正常合成。"
-TOOLTIP_STRETCH = "整词时长比值超过该倍数（或低于其倒数）时判定为不可支持。"
-TOOLTIP_FLOOR = "声码器做自然对数梅尔变换前的正幅度下限。"
+def status_summary(status: str) -> tuple[str, str]:
+    """Headline and note for one job status, in the active language."""
+    key = {
+        "completed": "status_completed",
+        "completed_with_unresolved": "status_unresolved",
+        "analysis_complete": "status_analysis_only",
+        "failed": "status_failed",
+        "cancelled": "status_cancelled",
+        "running": "status_running",
+    }.get(status)
+    if key is None:
+        return tr("status_unknown"), tr("status_unknown_note")
+    return tr(key), tr(f"{key}_note")
 
-TAB_LOG = "日志"
-TAB_RESULTS = "结果"
-TABLE_METRICS = "指标"
-TABLE_REGIONS = "对应关系"
-TABLE_WARNINGS = "警告"
-HEADER_MEASUREMENT = "测量项"
-HEADER_VALUE = "数值"
-HEADERS_REGIONS = ("教师", "学生", "状态", "处理方式", "质量", "教师起点", "教师终点", "原因")
-LOG_PLACEHOLDER = "任务运行时，管线输出会显示在这里。"
-WARNING_PLACEHOLDER = "管线给出的提示与限制会显示在这里。"
-DETAIL_NO_JOB = "本次会话还没有开始任务。"
-NO_WARNINGS = "该输出目录没有记录警告。"
 
-SUMMARY_NO_JOB = "尚无任务产物"
-SUMMARY_NO_JOB_NOTE = "先运行一个任务，或把输出目录指向已有结果来查看它。"
-SUMMARY_CORRECTED_PREFIX = "校正后的人声："
-SUMMARY_DISCLAIMER = "计划覆盖范围与实测波形质量是两件事，二者都不代表通过了听感验收。"
+def run_status_headline(status: str) -> str:
+    return tr(f"run_status_{status}") if status in {"succeeded", "failed", "cancelled"} else status
 
-STATUS_COMPLETED = ("已完成", "所有计划区段都由有支持的对应关系合成。")
-STATUS_UNRESOLVED = ("已完成，但存在未解决区段",
-                     "部分内容被静音、模糊或未匹配。信任结果前请先检查对应关系与警告。")
-STATUS_ANALYSIS_ONLY = ("分析完成", "只输出了检视用产物，没有合成音频。")
-STATUS_FAILED = ("失败", "管线在生成校正人声之前就中止了。")
-STATUS_CANCELLED = ("已取消", "任务被停止；已完成的分析缓存仍可复用。")
-STATUS_RUNNING = ("运行中", "任务尚未结束。")
-STATUS_RUNNING_NOTE = "界面显示的是进行中的状态；已有产物可能来自更早的一次运行。"
-STATUS_UNKNOWN = "未知"
-# A directory may hold artifacts without a job manifest: a partial run, or files
-# copied out of one. The summary says so instead of denying what it can read.
-STATUS_NO_MANIFEST_WITH_ARTIFACTS = "无任务清单，但存在产物"
-STATUS_NO_MANIFEST_NOTE = ("该目录没有 job.json，因此无法给出这次任务的状态；"
-                          "下面的指标、对应关系与警告来自目录中实际存在的文件。")
-STATUS_UNKNOWN_NOTE = "状态异常，请检查 job.json。"
-
-# Headlines for the runner's own finish status, which is about the process rather
-# than the artifact: a job can "succeed" and still leave regions unresolved.
-RUN_STATUS_HEADLINES = {
-    "succeeded": "已完成",
-    "failed": "失败",
-    "cancelled": "已取消",
-}
-
-ROW_LYRIC_UNITS = "歌词单元"
-ROW_LYRIC_UNITS_VALUE = "教师 {teacher} · 学生 {student}"
-ROW_UNIT_STATUS = "单元状态"
-ROW_PLANNED_COVERAGE = "计划歌词覆盖率"
-ROW_SEMANTIC_MATCH = "精确语义匹配率"
-ROW_UNSUPPORTED_REGIONS = "未支持区段"
-ROW_AMBIGUOUS_MATCHES = "模糊匹配"
-ROW_TEACHER_VOICED_COVERAGE = "教师有声语义覆盖率"
-ROW_EXPORTED_LENGTH = "导出长度"
-ROW_LENGTH_EXACT = "精确"
-ROW_LENGTH_MISMATCH = "不一致"
-ROW_LENGTH_VALUE = "{count} 采样（{state}）"
-
-PITCH_VS_TEACHER = "对比教师"
-PITCH_VS_TEACHER_REGISTER = "对比教师（换算到学生音区）"
-PITCH_VS_TARGET = "对比渲染目标"
-PITCH_ROW_ERROR = "音高误差（{label}）"
-PITCH_ROW_RECALL = "有声召回率（{label}）"
-PITCH_ROW_VALUE = "中位 {median}，p95 {p95}，基于 {frames} 个共同有声帧"
-
-TIMING_ROW_COMPARED = "可靠比对的单元"
-TIMING_ROW_COVERAGE = "全部教师单元中落在容差内"
-TIMING_ROW_ONSET = "起始误差"
-TIMING_ROW_OFFSET = "结束误差"
-TIMING_ROW_COMPARED_VALUE = "{reliable} / {total}"
-TIMING_ROW_ERROR_VALUE = "均值 {mean} · p95 {p95}"
-
-ROW_SYNTHESIS_DEVICE = "合成设备"
-ROW_RENDERED_RATIO = "已渲染样本比例"
-ROW_VOICED_RATIO = "有声帧比例"
-ROW_TIMING_CHANGED = "是否改变节奏"
-ROW_PITCH_POLICY = "音高策略"
-ROW_REGISTER_OFFSET = "音区差（按持续音测量）"
-ROW_NOTE_SHIFTS = "逐词移动的词数"
-ROW_NOTE_SHIFTS_VALUE = "{moved} / {measured} 个"
-ROW_MUTED_REGIONS = "静音区段"
-ROW_ACOUSTIC_TRANSITIONS = "声学过渡"
-ROW_PEAK_MEMORY = "峰值显存"
-ROW_JOB_TIME = "任务耗时"
-VALUE_YES = "是"
-VALUE_NO = "否"
-VALUE_SEMITONES = "{value:+.2f} 半音"
-VALUE_SECONDS = "{value:.3f} 秒"
-
-WARNING_LIMIT_PREFIX = "测量限制："
-WARNING_STRUCTURAL_FAILURE = "导出波形未通过结构校验。"
-
-PITCH_POLICY_LABELS = {
-    "none": "不改变音高（学生原样）",
-    "student_contour_student_register": "学生曲线 · 逐词对到教师音级 · 学生音区（适应模式）",
-    "teacher_contour_student_register": "教师曲线 · 学生音区",
-    "student_contour_teacher_register": "学生曲线 · 教师音区",
-    "teacher_contour_teacher_register": "教师曲线 · 教师音区（绝对音高）",
-}
-
-REGION_STATUS_LABELS = {
-    "matched": "匹配",
-    "homophone": "同音字",
-    "substitution": "疑似替换",
-    "missing": "缺失",
-    "unresolved": "未解决",
-    "unvoiced_gap": "无声音隙",
-    "phonetic_only": "仅发音匹配",
-    "extra": "多余",
-    "ambiguous": "模糊",
-}
-
-REGION_MODE_LABELS = {
-    "synthesize": "合成",
-    "mute": "静音",
-    "silence": "静音",
-    "acoustic_fallback": "声学兜底",
-}
-
-REGION_REASON_LABELS = {
-    "voiced_teacher_region_without_lyric_correspondence": "教师有声区段没有歌词对应",
-    "teacher_lyrics_unavailable": "教师歌词不可用",
-    "untranscribed_activity_no_lyric_correspondence": "未转写区段没有歌词对应",
-    "pitch_unvoiced_not_acoustic_silence": "无音高不等于静音",
-    "multiple_lexically_equivalent_paths_progress_is_only_weak_evidence": "存在多条等价路径，仅凭进度无法判定",
-    "consonant_limits_infeasible": "辅音时长限制下无法排布",
-    "no_phone_timeline_in_window": "该窗口没有音素时间轴",
-    "no_register_offset": "没有可用音区差",
-    "already_at_target_level": "已在目标音级",
-    "no_teacher_voiced_level": "教师该区段无有声音高",
-    "no_student_voiced_level": "学生该区段无有声音高",
-    "teacher_contour_used": "使用教师曲线，不逐词位移",
-    # The pipeline reuses a few status names in the reason field, plus these
-    # explanation-only reasons that appear alongside them.
-    "matched": "正常匹配",
-    "homophone": "同音字",
-    "possible_lyric_mismatch_or_asr_error": "可能歌词不一致或识别有误",
-    "no_corresponding_student_lyric_unit": "没有对应的学生歌词单元",
-}
-
-AUDIO_TEACHER = "教师参考"
-AUDIO_STUDENT = "学生原始"
-AUDIO_CORRECTED = "校正后学生"
-AUDIO_IDENTITY = "identity 重建"
-AUDIO_PITCH_ONLY = "仅改音高"
-AUDIO_TIME_ONLY = "仅改节奏"
-
-STAGE_LABELS = (
-    ("analysis", "分析：歌词、音素、音高与音符"),
-    ("alignment", "对应：匹配歌词单元并建立时间映射"),
-    ("render", "合成：变换特征并渲染校正后的人声"),
-    ("verification", "校验：重新测量导出的波形"),
-    ("timing_verification", "时间核对：重新识别输出词边界"),
-    ("review", "汇总：整理音频、警告与来源信息"),
-)
-STAGE_TRACK_LABELS = {"teacher": "教师", "student": "学生"}
-PHASE_LABELS = {"Lyrics": "歌词", "Phonemes": "音素", "Notes": "音符"}
-DETAIL_CHUNK = "{phase}：{track} 第 {index}/{total} 块"
-DETAIL_PITCH = "提取连续音高：{track}"
-DETAIL_RENDER = "正在渲染：{mode}"
-DETAIL_LOADING_VOCODER = "正在加载声码器（{device}）"
-DETAIL_STARTING = "正在启动管线。"
-DETAIL_RUNNING = "运行中…管线输出显示在日志页。"
-DETAIL_FINISHED = "已结束：{status}，耗时 {seconds:.1f} 秒。"
-DETAIL_CANCELLED = "已取消。已完成的分析缓存仍可复用。"
-DETAIL_CANCELLING = "正在取消，等待各工作进程停止。"
-
-STATUSBAR_READY = "就绪。"
-STATUSBAR_RUNNING = "运行中。"
-STATUSBAR_JOB = "任务{status}。"
-STATUSBAR_PLAYBACK_UNAVAILABLE = "无法播放：{message}"
-STATUSBAR_PREFS_FAILED = "无法保存界面偏好设置。"
-DIALOG_CANNOT_START = "无法开始"
-DIALOG_PIPELINE_FAILED = "管线失败"
-DIALOG_JOB_RUNNING = "有任务正在运行"
-DIALOG_REUSE_TITLE = "复用已有分析"
-DIALOG_REUSE_BODY = ("复用已有分析不会因为分析设置或算法变化而重跑分析，合成阶段仍会重新读取输入音频。\n\n"
-                     "是否继续？")
-DIALOG_JOB_RUNNING_BODY = "停止正在运行的任务并关闭窗口？"
-DIALOG_FAILED_FALLBACK = "管线在合成之前就中止了。"
-DIALOG_FAILED_BODY = ("{error}\n\n日志页与输出目录中的 processing.log 记录了管线的输出。")
-BULLET_ITEM = "• {item}"
-
-VALIDATE_CHOOSE_RECORDING = "请选择{label}录音。"
-VALIDATE_FILE_NOT_FOUND = "{label}文件不存在：{path}"
-VALIDATE_SAME_FILE = "教师录音与学生录音不能是同一个文件。"
-VALIDATE_CHOOSE_OUTPUT = "请选择输出目录。"
-VALIDATE_OUTPUT_IS_FILE = "输出路径已存在且是文件：{path}"
-VALIDATE_CONFLICT = "「只做分析」与「复用已有分析」不能同时启用，请取消其中一个。"
-VALIDATE_MISSING_ANALYSIS = "复用已有分析需要输出目录中存在：{files}。"
-VALIDATE_RANGE = "{name}必须大于 {low} 且不超过 {high}。"
-LABEL_TEACHER_SHORT = "教师"
-LABEL_STUDENT_SHORT = "学生"
 
 EXACT_WARNINGS = {
     "Audio is near silence; lyric analysis was not attempted.":
@@ -314,7 +98,6 @@ EXACT_WARNINGS = {
         "时间误差只统计可靠的精确词匹配；未覆盖的教师单元仍计入整体分母。",
     "Transcript differences can be ASR errors or rendered lyric problems; they do not prove omitted, added, or changed singing.":
         "转写差异可能来自识别错误，也可能来自渲染后的歌词问题；它不能证明漏唱、多唱或改词。",
-    # Timeline statements: these appear when the output keeps the student's clock.
     "The output keeps the student's timeline, so it is not sample-aligned with the teacher and the teacher-timeline pitch and coverage metrics are not measured.":
         "本次输出保留学生自己的时间轴，因此与教师并非逐采样对齐；以教师时间轴为准的音高与覆盖指标不参与测量。",
     "Timing accuracy against the teacher is only defined when the timing was corrected; this job did not change the timing.":
@@ -359,7 +142,7 @@ def job_error_text(sentence: str) -> str:
     for pattern, template in TEMPLATE_JOB_ERRORS:
         match = pattern.match(text)
         if match:
-            values = [STAGE_TRACK_LABELS.get(value, value) for value in match.groups()]
+            values = [stage_track_labels().get(value, value) for value in match.groups()]
             return template.format(*values)
     return text
 
@@ -412,7 +195,6 @@ EXACT_LIMITATIONS = {
         "图中略去了无声区间。",
 }
 
-# Each pattern is anchored so it cannot swallow an unrelated sentence.
 TEMPLATE_WARNINGS: tuple[tuple[re.Pattern, str, tuple[str, ...]], ...] = (
     (re.compile(r"^Possible lyric mismatch or ASR error: (.+) versus (.+)\.$"),
      "歌词可能不一致或识别有误：教师{0} / 学生{1}。", ("teacher", "student")),
@@ -453,12 +235,8 @@ TEMPLATE_WARNINGS: tuple[tuple[re.Pattern, str, tuple[str, ...]], ...] = (
 )
 
 
-
-
 def _strip_quotes(value: str) -> str:
-    """Drop the repr quotes the workers put around a word, then use Chinese ones.
-
-    Re-quoting the repr verbatim would double the marks."""
+    """Drop the repr quotes the workers put around a word, then use Chinese ones."""
     text = str(value).strip()
     if len(text) >= 2 and text[0] == text[-1] and text[0] in {"'", '"'}:
         text = text[1:-1]
@@ -466,10 +244,14 @@ def _strip_quotes(value: str) -> str:
 
 
 def warning_text(sentence: str) -> str:
-    """Translate one pipeline sentence, or return it unchanged.
+    """Translate one pipeline sentence in Chinese, or return it unchanged.
 
-    Unrecognized text stays in English on purpose."""
+    English is the pipeline's own language, so the English UI shows it verbatim."""
+    from gui.i18n import current_language
+
     text = str(sentence)
+    if current_language != "zh":
+        return text
     if text in EXACT_WARNINGS:
         return EXACT_WARNINGS[text]
     if text in EXACT_LIMITATIONS:
@@ -479,7 +261,6 @@ def warning_text(sentence: str) -> str:
         if match:
             values = list(match.groups())
             if groups == ("word", "ratio"):
-                # The English message names the word first, then the ratio.
                 ratios, words = values
                 return template.format(_strip_quotes(words), ratios)
             if groups == ("teacher", "student"):
@@ -495,22 +276,30 @@ def warning_list(items) -> list[str]:
     return [warning_text(item) for item in items]
 
 
-def label(kind: str, table: dict) -> str:
-    """Look up a Chinese label, falling back to the raw value."""
-    return table.get(kind, kind)
-
-
 def status_label(kind: str) -> str:
-    return label(str(kind), REGION_STATUS_LABELS)
+    return tr(f"region_status_{kind}") if f"region_status_{kind}" in _KNOWN_REGION_STATUSES else str(kind)
 
 
 def mode_label(kind: str) -> str:
-    return label(str(kind), REGION_MODE_LABELS)
+    return tr(f"region_mode_{kind}") if f"region_mode_{kind}" in _KNOWN_REGION_MODES else str(kind)
 
 
 def reason_label(kind: str) -> str:
-    return label(str(kind), REGION_REASON_LABELS)
+    key = f"region_reason_{kind}"
+    return tr(key) if key in _KNOWN_REGION_REASONS else str(kind)
 
 
 def policy_label(policy: str) -> str:
-    return label(str(policy), PITCH_POLICY_LABELS)
+    return tr(f"policy_{policy}") if f"policy_{policy}" in _KNOWN_POLICIES else str(policy)
+
+
+def _known_keys(prefix: str) -> frozenset[str]:
+    from gui.i18n import _STRINGS
+
+    return frozenset(key for key in _STRINGS if key.startswith(prefix))
+
+
+_KNOWN_REGION_STATUSES = _known_keys("region_status_")
+_KNOWN_REGION_MODES = _known_keys("region_mode_")
+_KNOWN_REGION_REASONS = _known_keys("region_reason_")
+_KNOWN_POLICIES = _known_keys("policy_")

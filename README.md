@@ -87,11 +87,15 @@ A desktop interface wraps the same pipeline for users who prefer it to the comma
 .\run_gui.bat
 ```
 
-The interface is presented in Simplified Chinese; the command line, the pipeline logs and every JSON artifact
-remain in English. The two are separate on purpose: the JSON is a machine-readable contract that stays stable,
-while the window translates the sentences it displays. Wording lives in `gui/text.py` as data, so it can be
-reviewed or changed without touching interface logic, and a pipeline warning the table does not recognize is
-shown in its original English rather than hidden.
+The interface follows the Vocal2Midi desktop style: an icon sidebar over three pages (Correction, Results,
+Settings), cards for each group of controls, and a light/dark theme. The bundled runtime needs nothing beyond
+PySide6, since the Fluent-style widgets live in `gui/fluent_compat.py` and the icons in `gui/assets/icons/`.
+
+The window is bilingual. The command line, the pipeline logs and every JSON artifact remain in English; the
+interface text is looked up through `gui/i18n.py`, and the language selector on the Settings page retranslates
+the whole window live. The two are separate on purpose: the JSON is a machine-readable contract that stays
+stable, while the window translates the sentences it displays. A pipeline warning the table does not recognize
+is shown in its original English rather than hidden.
 
 It collects the options above, shows the worker output while the job runs, and presents the finished artifacts. It adds no inference of its own: it starts `scripts\copyvocal_cli.py` in a child process, replays that output, and reads the resulting JSON. Stopping a job kills the child and the workers it owns. Qt (PySide6) is already present in the bundled runtime, so no installation step is needed.
 
@@ -102,9 +106,9 @@ The interface is deliberately explicit about the pipeline's limits:
 - `--skip-analysis` can be selected, but it does not rerun analysis for changed analysis settings or algorithms; the interface says so before starting.
 - Reusing analysis, and every other option, is written to `gui_settings.json` inside the chosen output directory, so the exact settings of a run stay next to its artifacts. The equivalent `run.bat` command line is shown before starting and can be copied.
 
-Reopening the interface on an existing output directory reviews that job without running anything. The **Results** tab lists the metrics, the per-unit correspondences and the warnings; audio is played through Qt Multimedia, and `report.html` opens in the browser from there. The corrected vocal remains `student.corrected.wav`, unchanged.
+Reopening the interface on an existing output directory reviews that job without running anything. The **Results** page lists the metrics, the per-unit correspondences and the warnings; audio is played through Qt Multimedia, and `report.html` opens in the browser from there. The corrected vocal remains `student.corrected.wav`, unchanged.
 
-Advanced settings expose the CLI's analysis knobs with the same defaults and ranges. Window state and the last used paths are stored in `settings\gui_prefs.json`, which is not read by the pipeline.
+Advanced settings expose the CLI's analysis knobs with the same defaults and ranges. The window state, the theme, the interface language and the last used paths are stored in `settings\gui_prefs.json`, which is not read by the pipeline.
 
 | Option | Default | Purpose |
 | --- | --- | --- |

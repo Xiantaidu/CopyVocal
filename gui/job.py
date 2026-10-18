@@ -6,7 +6,7 @@ from pathlib import Path
 
 from application.artifacts import ROOT
 from application.languages import SUPPORTED_LANGUAGES
-from gui import text as T
+from gui.i18n import tr
 
 SETTINGS_PATH = ROOT / "settings" / "default.json"
 PREFS_PATH = ROOT / "settings" / "gui_prefs.json"
@@ -106,34 +106,34 @@ class JobRequest:
     def validate(self) -> list[str]:
         """Return human-readable problems that must be fixed before a run."""
         problems: list[str] = []
-        for label, value in ((T.LABEL_TEACHER_SHORT, self.teacher),
-                             (T.LABEL_STUDENT_SHORT, self.student)):
+        for label, value in ((tr("label_teacher_short"), self.teacher),
+                             (tr("label_student_short"), self.student)):
             text = value.strip()
             if not text:
-                problems.append(T.VALIDATE_CHOOSE_RECORDING.format(label=label))
+                problems.append(tr("validate_choose_recording").format(label=label))
             elif not Path(text).is_file():
-                problems.append(T.VALIDATE_FILE_NOT_FOUND.format(label=label, path=text))
+                problems.append(tr("validate_file_not_found").format(label=label, path=text))
         if not problems:
             if self.teacher_path.resolve() == self.student_path.resolve():
-                problems.append(T.VALIDATE_SAME_FILE)
+                problems.append(tr("validate_same_file"))
         if not self.output.strip():
-            problems.append(T.VALIDATE_CHOOSE_OUTPUT)
+            problems.append(tr("validate_choose_output"))
         elif self.output_path.exists() and not self.output_path.is_dir():
-            problems.append(T.VALIDATE_OUTPUT_IS_FILE.format(path=self.output))
+            problems.append(tr("validate_output_is_file").format(path=self.output))
         if self.analyze_only and self.skip_analysis:
-            problems.append(T.VALIDATE_CONFLICT)
+            problems.append(tr("validate_conflict"))
         if self.skip_analysis:
             missing = [name for name in REQUIRED_ANALYSIS_FILES if not (self.output_path / name).is_file()]
             if missing:
-                problems.append(T.VALIDATE_MISSING_ANALYSIS.format(
+                problems.append(tr("validate_missing_analysis").format(
                     files="、".join(missing) + f"（位于 {self.output}）"))
-        for name, value, low, high in ((T.ADVANCED_MAX_CHUNK, self.max_chunk_seconds, 0.0, 600.0),
-                                       (T.ADVANCED_CONTEXT, self.context_seconds, 0.0, 10.0),
-                                       (T.ADVANCED_QUALITY, self.minimum_alignment_quality, 0.0, 1.0),
-                                       (T.ADVANCED_STRETCH, self.maximum_stretch, 1.0, 100.0),
-                                       (T.ADVANCED_FLOOR, self.log_floor, 0.0, 1.0)):
+        for name, value, low, high in ((tr("advanced_max_chunk"), self.max_chunk_seconds, 0.0, 600.0),
+                                       (tr("advanced_context"), self.context_seconds, 0.0, 10.0),
+                                       (tr("advanced_quality"), self.minimum_alignment_quality, 0.0, 1.0),
+                                       (tr("advanced_stretch"), self.maximum_stretch, 1.0, 100.0),
+                                       (tr("advanced_floor"), self.log_floor, 0.0, 1.0)):
             if not low < float(value) <= high:
-                problems.append(T.VALIDATE_RANGE.format(name=name, low=low, high=high))
+                problems.append(tr("validate_range").format(name=name, low=low, high=high))
         return problems
 
     def effective_config(self) -> dict:

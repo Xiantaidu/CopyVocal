@@ -13,46 +13,45 @@ from PySide6.QtWidgets import QApplication
 from gui.window import MainWindow
 
 
+def save(window, application, name: str) -> None:
+    application.processEvents()
+    target = ROOT / "outputs" / name
+    window.grab().save(str(target))
+    print("saved", target, target.stat().st_size, "bytes")
+
+
 def main() -> int:
     application = QApplication([])
     window = MainWindow()
     window.teacher_edit.setText(str(ROOT / "Teacher.wav"))
     window.student_edit.setText(str(ROOT / "Student.wav"))
     window.output_edit.setText(str(ROOT / "outputs" / "short"))
-    window.advanced.setChecked(True)
     window.refresh_results()
-
-    target = ROOT / "outputs" / "gui_screenshot.png"
-    window.resize(1180, 860)
+    window.resize(1260, 1000)
     window.show()
     application.processEvents()
+
     # Exercise the progress display so the shot shows a mid-run state too.
     for stage, state in (("analysis", "done"), ("alignment", "done"), ("render", "running")):
         window._update_stage(stage, state)
     window._update_progress(72)
     window.detail_label.setText("正在渲染：full")
-    application.processEvents()
-    window.grab().save(str(target))
-    print("saved", target, target.stat().st_size, "bytes")
+    save(window, application, "gui_screenshot.png")
 
-    window.tabs.setCurrentIndex(1)
-    window.tables.setCurrentIndex(0)
-    application.processEvents()
-    tables = ROOT / "outputs" / "gui_screenshot_results.png"
-    window.grab().save(str(tables))
-    print("saved", tables, tables.stat().st_size, "bytes")
+    window.navigationInterface.setCurrentItem(window.results.objectName())
+    for index, name in ((0, "gui_screenshot_results.png"),
+                        (1, "gui_screenshot_regions.png"),
+                        (2, "gui_screenshot_warnings.png")):
+        window.tables.setCurrentIndex(index)
+        save(window, application, name)
 
-    window.tables.setCurrentIndex(1)
-    application.processEvents()
-    regions = ROOT / "outputs" / "gui_screenshot_regions.png"
-    window.grab().save(str(regions))
-    print("saved", regions, regions.stat().st_size, "bytes")
+    window.navigationInterface.setCurrentItem(window.settings.objectName())
+    save(window, application, "gui_screenshot_settings.png")
 
-    window.tables.setCurrentIndex(2)
-    application.processEvents()
-    warnings = ROOT / "outputs" / "gui_screenshot_warnings.png"
-    window.grab().save(str(warnings))
-    print("saved", warnings, warnings.stat().st_size, "bytes")
+    window.settings.apply_theme("dark")
+    window.navigationInterface.setCurrentItem(window.correction.objectName())
+    save(window, application, "gui_screenshot_dark.png")
+    window.settings.apply_theme("light")
     return 0
 
 
