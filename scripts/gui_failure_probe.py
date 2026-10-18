@@ -3,7 +3,7 @@
 A failing job must surface the error, re-enable Run, and leave unfinished stages
 unfinished rather than showing them as complete. Run with:
 
-    .\\python\\python.exe -X utf8 tests\\gui_failure_probe.py
+    .\\python\\python.exe -X utf8 scripts\\gui_failure_probe.py
 """
 from __future__ import annotations
 

@@ -266,6 +266,7 @@ RMVPE also estimates teacher pitch, so these pitch scores are agreement measurem
 
 ```text
 CopyVocal/
+  app_gui.py         Desktop interface entry point
   application/       Job orchestration, provenance, and HTML reports
   gui/               Desktop interface over the command-line pipeline
   inference/
@@ -280,7 +281,7 @@ CopyVocal/
   models/             Physical copies of all inference model bundles
   python/             Isolated portable Python and installed libraries
   settings/           Resource/runtime manifests and settings
-  scripts/            CLI, worker processes, migration, and smoke checks
+  scripts/            CLI, worker processes, migration, probes, and smoke checks
   tests/              CPU behavioral and contract tests
   docs/               Architecture documentation
   licenses/           Retained Vocal2Midi licenses and notices
@@ -309,13 +310,13 @@ Three standalone probes check what unit tests cannot, and are not part of the su
 
 ```powershell
 # Drive one real job through the window's own code path.
-.\python\python.exe -X utf8 tests\gui_e2e_probe.py
+.\python\python.exe -X utf8 scripts\gui_e2e_probe.py
 
 # Confirm that cancelling stops the job and the workers it spawned.
-.\python\python.exe -X utf8 tests\gui_cancel_probe.py
+.\python\python.exe -X utf8 scripts\gui_cancel_probe.py
 
 # Render the window to PNG for layout review without a display.
-.\python\python.exe -X utf8 tests\gui_screenshot.py
+.\python\python.exe -X utf8 scripts\gui_screenshot.py
 ```
 
 See [docs/architecture.md](docs/architecture.md) for time coordinates, data contracts, memory handling, and verification limits.

@@ -3,7 +3,7 @@
 Cancellation is the one control the interface implements itself, so it needs a
 real child process to be meaningful. Run with:
 
-    .\\python\\python.exe -X utf8 tests\\gui_cancel_probe.py
+    .\\python\\python.exe -X utf8 scripts\\gui_cancel_probe.py
 """
 from __future__ import annotations
 

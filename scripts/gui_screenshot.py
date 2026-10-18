@@ -1,6 +1,6 @@
 """Render the window to PNG so the layout can be inspected without a display.
 
-Run with:  .\\python\\python.exe -X utf8 tests\\gui_screenshot.py
+Run with:  .\\python\\python.exe -X utf8 scripts\\gui_screenshot.py
 """
 from __future__ import annotations
 

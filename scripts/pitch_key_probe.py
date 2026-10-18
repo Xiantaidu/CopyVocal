@@ -13,7 +13,7 @@ separate things that could each explain an out-of-tune result:
    matches it exactly, which is a defect this project's own accuracy metric
    cannot see.
 
-    .\python\python.exe -X utf8 tests\pitch_key_probe.py outputs\long_hard
+    .\python\python.exe -X utf8 scripts\pitch_key_probe.py outputs\long_hard
 """
 from __future__ import annotations
 

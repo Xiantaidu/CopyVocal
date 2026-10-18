@@ -5,7 +5,7 @@ student once per pitch setting with the real vocoder, and prints the policy, the
 applied move and the per-word placement counts. It writes only the target-pitch
 arrays, so an existing corrected waveform is never overwritten.
 
-    .\python\python.exe tests\pitch_probe.py outputs\short
+    .\python\python.exe scripts\pitch_probe.py outputs\short
 """
 from __future__ import annotations
 

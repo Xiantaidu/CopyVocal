@@ -2,7 +2,7 @@
 
 Run through run_gui.bat, or directly:
 
-    .\\python\\pythonw.exe -X utf8 -m gui.main
+    .\\python\\pythonw.exe -X utf8 app_gui.py
 """
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import multiprocessing
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
