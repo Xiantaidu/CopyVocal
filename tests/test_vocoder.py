@@ -1,5 +1,3 @@
-"""Low-cost checks for timing, UV handling, and unsupported-word behavior."""
-
 import unittest
 import tempfile
 from pathlib import Path

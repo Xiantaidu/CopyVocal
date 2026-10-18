@@ -1,4 +1,3 @@
-"""Align a student's vocal pitch and timing to a teacher recording."""
 from __future__ import annotations
 
 import argparse
@@ -20,7 +19,7 @@ def main() -> int:
     config = json.loads(config_args.config.read_text(encoding="utf-8"))
     if config.get("sample_rate", 44100) != 44100:
         config_parser.error("The bundled vocoder requires sample_rate=44100.")
-    parser = argparse.ArgumentParser(description=__doc__, parents=[config_parser])
+    parser = argparse.ArgumentParser(description="Align a student's vocal pitch and timing to a teacher recording.", parents=[config_parser])
     parser.add_argument("--teacher", type=Path, default=ROOT / "Teacher.wav")
     parser.add_argument("--student", type=Path, default=ROOT / "Student.wav")
     parser.add_argument("--output", type=Path, default=ROOT / "outputs" / "short")

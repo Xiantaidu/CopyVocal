@@ -43,12 +43,10 @@ def _clamp_midi_pitch(pitch: float) -> int:
 
 
 def pad_1d_arrays(arrays: list[np.ndarray], pad_value=0.0) -> np.ndarray:
-    """Pad a list of 1D numpy arrays to the maximum length and stack them."""
     if not arrays:
         return np.zeros((0, 0), dtype=np.float32)
     max_len = max(len(arr) for arr in arrays)
     if max_len == 0:
-        # All inputs empty: return an (N, 0) matrix, not a phantom column.
         return np.full((len(arrays), 0), pad_value, dtype=arrays[0].dtype)
 
     padded = []

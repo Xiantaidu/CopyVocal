@@ -1,5 +1,3 @@
-"""Bounded acoustic context outside semantically supported lyric regions."""
-
 from __future__ import annotations
 
 import math
@@ -14,7 +12,7 @@ _GAP_REASON = "voiced_teacher_region_without_lyric_correspondence"
 
 
 def _allowed(region: dict, allow_fallback: bool, minimum_quality: float) -> bool:
-    """Match the renderer policy without importing the renderer."""
+    """Mirrors the renderer policy without importing the renderer."""
     mode = region.get("mode", "synthesize")
     if mode == "acoustic_fallback":
         return bool(allow_fallback) and float(region.get("quality", 0)) >= minimum_quality
@@ -86,8 +84,8 @@ def _source_blockers(regions: list[dict], words: list[tuple[int, float, float]],
     for index, other in enumerate(regions):
         if index == region_index or _safe_gap(other):
             continue
-        # Include rejected lexical ranges even when original word indices are absent.
-        # A missing target word can have no source interval at all.
+        # Include rejected lexical ranges even without original word indices;
+        # a missing target word can have no source interval.
         if "student_start" not in other or "student_end" not in other:
             continue
         left, right = _span(other, "student_", student_duration)
@@ -165,11 +163,7 @@ def build_boundary_context(regions: list[dict], student_words: list[dict],
                            allow_fallback: bool = False, minimum_quality: float = 0.0) -> list[dict]:
     """Add acoustic edges without changing lyric support or crossing rejected words.
 
-    Only explicitly classified nonlexical gaps can receive context. Attacks use
-    at most 20 ms of preceding source audio. Releases prefer up to 60 ms of
-    real continuation; without source room they use at most 40 ms of smoothly
-    decaying terminal texture. The renderer must apply the indicated envelope.
-    """
+    Only classified nonlexical gaps get context; the renderer applies the envelope."""
     teacher_duration, student_duration = float(teacher_duration), float(student_duration)
     if any(not math.isfinite(value) or value < 0 for value in (teacher_duration, student_duration)):
         raise ValueError("Track durations must be finite and nonnegative.")

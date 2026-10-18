@@ -1,10 +1,3 @@
-"""Read finished job artifacts and describe them for the window.
-
-Nothing here recomputes a measurement. Every number is copied from the files
-the pipeline wrote, together with the pipeline's own caveats, because the
-report's central claim is that planned coverage and measured quality are
-different things and neither certifies a listening pass.
-"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -60,13 +53,14 @@ def _read(path: Path) -> dict:
         return {}
 
 
+# Nothing here recomputes a measurement: every number is copied from the files
+# the pipeline wrote, with the pipeline's own caveats.
 class JobArtifacts:
     """A read-only view of one output directory."""
 
     def __init__(self, output: Path) -> None:
         self.output = Path(output)
 
-    # ── Availability ──────────────────────────────────────────────
     def available_audio(self) -> list[tuple[str, Path]]:
         return [(label, self.output / name) for label, name in AUDIO_FILES
                 if (self.output / name).is_file()]
@@ -79,12 +73,10 @@ class JobArtifacts:
         candidate = self.output / "student.corrected.wav"
         return candidate if candidate.is_file() else None
 
-    # ── Summaries ─────────────────────────────────────────────────
     def job(self) -> dict:
         return _read(self.output / "job.json")
 
     def summary(self) -> tuple[str, str]:
-        """Headline status and its honest one-sentence reading."""
         job = self.job()
         if not job:
             # A directory can hold analysis or render artifacts without a job
@@ -103,7 +95,6 @@ class JobArtifacts:
         return headline, note
 
     def metrics(self) -> list[tuple[str, str]]:
-        """Label/value rows from alignment metrics and measured coverage."""
         plan = _read(self.output / "alignment.json")
         verification = _read(self.output / "verification.json")
         metrics, counts = plan.get("metrics", {}), plan.get("metrics", {}).get("status_counts", {})
@@ -135,10 +126,7 @@ class JobArtifacts:
     def pitch_rows(self) -> list[tuple[str, str]]:
         """Measured pitch agreement, kept separate from planned coverage.
 
-        When the render was mapped into the student's own register, the teacher's
-        absolute pitch is not the aimed reference, so the register-matched
-        comparison is shown alongside it instead of being hidden.
-        """
+        With register mapping, absolute teacher pitch is not the aimed reference."""
         verification = _read(self.output / "verification.json")
         sections = [(T.PITCH_VS_TEACHER,
                      verification.get("actual_vs_teacher", {}).get("all_reference_frames", {}))]
@@ -161,7 +149,6 @@ class JobArtifacts:
         return rows
 
     def timing_rows(self) -> list[tuple[str, str]]:
-        """Optional ASR/TiFA boundary remeasurement, when it ran."""
         timing = _read(self.output / "timing.verification.json")
         coverage = timing.get("coverage", {})
         if not coverage:
@@ -201,7 +188,6 @@ class JobArtifacts:
         return collected
 
     def regions(self) -> list[dict]:
-        """Per-unit correspondence rows, most informative fields first."""
         plan = _read(self.output / "alignment.json")
         rows = []
         for region in plan.get("regions", []):
@@ -218,7 +204,6 @@ class JobArtifacts:
         return rows
 
     def diagnostics(self) -> list[tuple[str, str]]:
-        """Render-side facts that do not fit the measurement rows."""
         render = _read(self.output / "render.json")
         experiment = render.get("experiments", {}).get("full", {})
         rows: list[tuple[str, str]] = []

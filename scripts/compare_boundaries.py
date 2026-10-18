@@ -1,5 +1,3 @@
-"""Compare exported vocal boundaries on CPU without judging perceived naturalness."""
-
 from __future__ import annotations
 
 import argparse
@@ -288,7 +286,7 @@ def compare(baseline_dir: Path, candidate_dir: Path) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description="Compare exported vocal boundaries on CPU without judging perceived naturalness.")
     parser.add_argument("--baseline", type=Path, required=True, help="Directory containing the original corrected WAV and cached analysis.")
     parser.add_argument("--candidate", type=Path, required=True, help="Directory containing the candidate corrected WAV.")
     parser.add_argument("--output", type=Path, required=True, help="Destination JSON report.")

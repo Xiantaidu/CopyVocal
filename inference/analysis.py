@@ -1,8 +1,3 @@
-"""Independent vocal analysis with resumable, content-addressed stage caches.
-
-Model imports are lazy. Two tracks share each model in turn, and ASR is
-isolated in a subprocess which closes before forced alignment starts.
-"""
 from __future__ import annotations
 
 import gc
@@ -48,7 +43,6 @@ def atomic_json(path: str | Path, payload: dict | list) -> None:
 
 
 def load_analysis(path: str | Path) -> dict:
-    """Read the public analysis schema from a saved JSON result."""
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     required = {"source", "sample_rate", "sample_count", "duration", "words", "pitch", "notes"}
     if not isinstance(data, dict) or not required.issubset(data):
@@ -69,8 +63,6 @@ def _check_cancel(checker) -> None:
 
 
 class _FingerprintIndex:
-    """Hash file contents once per exact size and timestamp identity."""
-
     def __init__(self, directory: Path):
         self.path = directory / "fingerprints.json"
         self.entries = _cached(self.path) or {}
@@ -120,7 +112,6 @@ def _text(result) -> str:
 
 
 def _japanese_resources(root: Path) -> dict[str, Path]:
-    """Require the physical Japanese bundles inside this project."""
     models = root / "models"
     paths = {"japanese_asr": models / "romajiASR", "japanese_g2p": models / "kashi-g2p-onnx"}
     required = [paths["japanese_asr"] / "model.onnx", paths["japanese_asr"] / "phoneme_vocab.json",
@@ -139,7 +130,6 @@ def _japanese_resources(root: Path) -> dict[str, Path]:
 
 
 def _japanese_moras(result) -> tuple[list[str], list[str]]:
-    """Use Vocal2Midi's phoneme-to-mora rules, including N and cl."""
     from inference.API.lfa_api import _normalize_asr_phoneme_token, _phoneme_tokens_to_romaji_moras
     raw = result.get("phonemes") if isinstance(result, dict) else None
     if not isinstance(raw, list):
@@ -150,7 +140,6 @@ def _japanese_moras(result) -> tuple[list[str], list[str]]:
 
 
 def _japanese_semantic_readings(text: str, pipeline) -> list[dict]:
-    """Preserve untimed text readings as evidence, never as aligned lyrics."""
     from inference.TiFA.aligner import _merge_mora_phonemes
     readings = []
     for index, word in enumerate(pipeline.convert(text, languages=["ja"])):
@@ -168,7 +157,6 @@ def _japanese_semantic_readings(text: str, pipeline) -> list[dict]:
 
 
 def _run_japanese_pronunciation(tracks, model_path, g2p_path, alignment_path, device, cancel_checker, progress):
-    """Keep Qwen text and direct mora ASR independent for each singer."""
     from inference.romaji_asr.runtime import RomajiASROnnxModel
     model = None
     try:
@@ -221,7 +209,6 @@ def _run_japanese_pronunciation(tracks, model_path, g2p_path, alignment_path, de
 
 
 def _quality(word: dict, waveform: np.ndarray, sample_rate: int) -> tuple[float, list[str]]:
-    """Use structural and acoustic checks; this is not a calibrated posterior."""
     issues = []
     duration = word["end"] - word["start"]
     if duration < 0.035:
@@ -262,7 +249,6 @@ def _deduplicate_words(words: list[dict], warnings: list[str]) -> list[dict]:
 
 
 def _write_textgrid(path: Path, analysis: dict) -> None:
-    """Export absolute original coordinates, including empty intervals."""
     def quote(text):
         return str(text).replace('"', '""').replace("\n", " ")
     duration = analysis["duration"]
@@ -513,12 +499,7 @@ def analyze_pair(
 ) -> tuple[dict, dict]:
     """Analyze both tracks independently, never copying teacher lyrics.
 
-    ``stages`` may select ``lyrics``, ``pitch``, and ``notes`` for separate
-    process invocations. Every invocation merges all completed cached stages
-    into ``teacher.analysis.json`` and ``student.analysis.json``. Incomplete
-    stages are explicit in ``completed_stages`` and ``warnings``. Callers must
-    use an ``if __name__ == '__main__'`` guard on Windows for ASR subprocesses.
-    """
+    ``stages`` selects lyrics/pitch/notes; Windows callers need a ``__main__`` guard."""
     root, output_dir = Path(root).resolve(), Path(output_dir).resolve()
     language = str(language or "zh").strip().lower()
     if language not in {"zh", "ja", "en", "yue"}:

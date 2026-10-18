@@ -1,4 +1,3 @@
-"""Remeasure exported audio in a process isolated from the neural vocoder."""
 from __future__ import annotations
 
 import argparse
@@ -11,7 +10,7 @@ sys.path.insert(0, str(ROOT))
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description="Remeasure exported audio in a process isolated from the neural vocoder.")
     parser.add_argument("--audio", type=Path, required=True)
     parser.add_argument("--teacher-analysis", type=Path, required=True)
     parser.add_argument("--student-analysis", type=Path,

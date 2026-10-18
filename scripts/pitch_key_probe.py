@@ -1,20 +1,4 @@
-r"""Diagnose why adaptive placement can sound out of tune.
-
-Measures, on an existing output directory's analyses and alignment, three
-separate things that could each explain an out-of-tune result:
-
-1. How far each word is moved. Adaptive placement moves a word by
-   ``offset - difference``, so measurement spread around the register median
-   becomes per-word detuning of words that were already correct.
-2. Whether each side is on a stable scale, and which key that is. Key detection
-   is only meaningful if the singing really sits on a scale.
-3. Whether the aims themselves land on the student's scale. A target that is
-   chromatically transposed off the student's key is wrong even when the output
-   matches it exactly, which is a defect this project's own accuracy metric
-   cannot see.
-
-    .\python\python.exe -X utf8 scripts\pitch_key_probe.py outputs\long_hard
-"""
+# Usage: .\python\python.exe -X utf8 scripts\pitch_key_probe.py outputs\long_hard
 from __future__ import annotations
 
 import json
@@ -35,20 +19,17 @@ def midi(f0):
 
 
 def scale_distance(value, tonic, scale):
-    """Distance in cents from a MIDI value to the nearest tone of a key."""
     offsets = [abs((value - tonic - degree)) % 12 for degree in scale]
     return min(min(item, 12 - item) for item in offsets) * SEMITONE
 
 
 def key_score(values, tonic, scale):
-    """Mean distance from a MIDI value to the nearest tone of a key, in cents."""
     if not len(values):
         return float("inf")
     return float(sum(scale_distance(value, tonic, scale) for value in values) / len(values))
 
 
 def detect_key(values):
-    """Best (tonic, scale) by mean distance to the nearest scale tone."""
     best = None
     for tonic in range(12):
         for name, scale in SCALES.items():
@@ -60,7 +41,6 @@ def detect_key(values):
 
 
 def levels(pitch, regions, side):
-    """Median MIDI level per matched region, on one side's own interval."""
     import numpy as np
     times = np.asarray(pitch["times"], dtype=float)
     f0 = np.asarray(pitch["f0_hz"], dtype=float)

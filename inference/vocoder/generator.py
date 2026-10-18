@@ -1,12 +1,3 @@
-"""PC-NSF-HiFiGAN generator architecture.
-
-Adapted from hifisampler-main/util/nsf_hifigan.py (Apache-2.0), which
-implements the openvpi/SingingVocoders PC-NSF-HiFiGAN architecture.
-Modified for CopyVocal: package-local helpers, legacy checkpoint-compatible
-weight normalization, and continuous source phase during chunked inference.
-The Apache-2.0 license is included beside this source.
-"""
-
 import logging
 import numpy as np
 import torch
@@ -27,6 +18,9 @@ def init_weights(module, mean=0.0, std=0.01):
         module.weight.data.normal_(mean, std)
 
 
+# Adapted from hifisampler-main/util/nsf_hifigan.py (Apache-2.0), implementing
+# the openvpi/SingingVocoders PC-NSF-HiFiGAN architecture; the license is
+# included beside this source.
 class ResBlock1(torch.nn.Module):
     def __init__(self, h, channels, kernel_size=3, dilation=(1, 3, 5)):
         super(ResBlock1, self).__init__()
@@ -92,20 +86,7 @@ class ResBlock2(torch.nn.Module):
 
 
 class SineGen(torch.nn.Module):
-    """ Definition of sine generator
-    SineGen(samp_rate, harmonic_num = 0,
-            sine_amp = 0.1, noise_std = 0.003,
-            voiced_threshold = 0,
-            flag_for_pulse=False)
-    samp_rate: sampling rate in Hz
-    harmonic_num: number of harmonic overtones (default 0)
-    sine_amp: amplitude of sine-waveform (default 0.1)
-    noise_std: std of Gaussian noise (default 0.003)
-    voiced_threshold: F0 threshold for U/V classification (default 0)
-    flag_for_pulse: this SinGen is used inside PulseGen (default False)
-    Note: when flag_for_pulse is True, the first time step of a voiced
-        segment is always sin(np.pi) or cos(0)
-    """
+    """Sine generator with harmonic overtones and U/V thresholding."""
 
     def __init__(self, samp_rate, harmonic_num=0,
                  sine_amp=0.1, noise_std=0.003,
@@ -119,15 +100,11 @@ class SineGen(torch.nn.Module):
         self.voiced_threshold = voiced_threshold
 
     def _f02uv(self, f0):
-        # generate uv signal
         uv = torch.ones_like(f0)
         uv = uv * (f0 > self.voiced_threshold)
         return uv
 
     def _f02sine(self, f0, upp):
-        """ f0: (batchsize, length, dim)
-            where dim indicates fundamental tone and overtones
-        """
         rad = f0 / self.sampling_rate * torch.arange(1, upp + 1, device=f0.device)
         rad2 = torch.fmod(rad[..., -1:].float() + 0.5, 1.0) - 0.5
         rad_acc = rad2.cumsum(dim=1).fmod(1.0).to(f0)
@@ -142,12 +119,6 @@ class SineGen(torch.nn.Module):
 
     @torch.inference_mode()
     def forward(self, f0, upp):
-        """ sine_tensor, uv = forward(f0)
-        input F0: tensor(batchsize=1, length, dim=1)
-                  f0 for unvoiced steps should be 0
-        output sine_tensor: tensor(batchsize=1, length, dim)
-        output uv: tensor(batchsize=1, length, 1)
-        """
         f0 = f0.unsqueeze(-1)
         sine_waves = self._f02sine(f0, upp) * self.sine_amp
         uv = (f0 > self.voiced_threshold).float()
@@ -159,22 +130,7 @@ class SineGen(torch.nn.Module):
 
 
 class SourceModuleHnNSF(torch.nn.Module):
-    """ SourceModule for hn-nsf
-    SourceModule(sampling_rate, harmonic_num=0, sine_amp=0.1,
-                 add_noise_std=0.003, voiced_threshod=0)
-    sampling_rate: sampling_rate in Hz
-    harmonic_num: number of harmonic above F0 (default: 0)
-    sine_amp: amplitude of sine source signal (default: 0.1)
-    add_noise_std: std of additive Gaussian noise (default: 0.003)
-        note that amplitude of noise in unvoiced is decided
-        by sine_amp
-    voiced_threshold: threhold to set U/V given F0 (default: 0)
-    Sine_source, noise_source = SourceModuleHnNSF(F0_sampled)
-    F0_sampled (batchsize, length, 1)
-    Sine_source (batchsize, length, 1)
-    noise_source (batchsize, length 1)
-    uv (batchsize, length, 1)
-    """
+    """Merges harmonic sine sources into a single excitation for hn-nsf."""
 
     def __init__(self, sampling_rate, harmonic_num=0, sine_amp=0.1,
                  add_noise_std=0.003, voiced_threshold=0):
@@ -183,11 +139,9 @@ class SourceModuleHnNSF(torch.nn.Module):
         self.sine_amp = sine_amp
         self.noise_std = add_noise_std
 
-        # to produce sine waveforms
         self.l_sin_gen = SineGen(sampling_rate, harmonic_num,
                                  sine_amp, add_noise_std, voiced_threshold)
 
-        # to merge source harmonics into a single excitation
         self.l_linear = torch.nn.Linear(harmonic_num + 1, 1)
         self.l_tanh = torch.nn.Tanh()
 
@@ -229,7 +183,7 @@ class Generator(torch.nn.Module):
             for j, (k, d) in enumerate(zip(h.resblock_kernel_sizes, h.resblock_dilation_sizes)):
                 self.resblocks.append(resblock(h, ch, k, d))
             if not h.mini_nsf:
-                if i + 1 < len(h.upsample_rates):  #
+                if i + 1 < len(h.upsample_rates):
                     stride_f0 = int(np.prod(h.upsample_rates[i + 1:]))
                     self.noise_convs.append(Conv1d(
                         1, ch, kernel_size=stride_f0 * 2, stride=stride_f0, padding=stride_f0 // 2))

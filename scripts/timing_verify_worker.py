@@ -1,4 +1,3 @@
-"""Remeasure rendered word boundaries without teacher-forced output lyrics."""
 from __future__ import annotations
 
 import argparse
@@ -11,7 +10,7 @@ sys.path.insert(0, str(ROOT))
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description="Remeasure rendered word boundaries without teacher-forced output lyrics.")
     parser.add_argument("--audio", type=Path, required=True)
     parser.add_argument("--teacher-analysis", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)

@@ -1,5 +1,3 @@
-"""Pitch sampling that keeps voiced runs separate from silence."""
-
 from __future__ import annotations
 
 import numpy as np
@@ -8,9 +6,7 @@ import numpy as np
 def sample_pitch(pitch: dict, query_times: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Interpolate log-F0 inside voiced runs; never bridge an unvoiced gap.
 
-    Explicit ``times`` are required. UV is sampled from the nearest original
-    frame independently from F0. Out-of-range queries return unvoiced.
-    """
+    UV comes from the nearest original frame independently of F0."""
     query = np.asarray(query_times, dtype=np.float64)
     times = np.asarray(pitch.get("times", []), dtype=np.float64)
     f0 = np.asarray(pitch.get("f0_hz", []), dtype=np.float64)

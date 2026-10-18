@@ -1,5 +1,3 @@
-"""Verify or physically copy the self-contained Japanese inference resources."""
-
 from __future__ import annotations
 
 import argparse
@@ -99,7 +97,6 @@ def copy_japanese_bundles(root: Path, source: Path) -> None:
 
 
 def cpu_smoke(root: Path) -> dict:
-    """Load Japanese models on CPU only and exercise local G2P resources."""
     import importlib
     import os
 
@@ -136,7 +133,7 @@ def cpu_smoke(root: Path) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description="Verify or physically copy the self-contained Japanese inference resources.")
     parser.add_argument("--source", type=Path, help="Upstream project used for byte-for-byte comparison.")
     parser.add_argument("--output", type=Path, default=ROOT / "settings/japanese_resource_audit.json")
     parser.add_argument("--copy", action="store_true", help="Physically copy missing Japanese model bundles first.")

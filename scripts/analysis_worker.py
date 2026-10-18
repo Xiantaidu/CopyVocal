@@ -1,4 +1,3 @@
-"""Run both analysis tracks in an isolated process."""
 from __future__ import annotations
 
 import argparse
@@ -11,7 +10,7 @@ sys.path.insert(0, str(ROOT))
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description="Run both analysis tracks in an isolated process.")
     parser.add_argument("--teacher", type=Path, required=True)
     parser.add_argument("--student", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)

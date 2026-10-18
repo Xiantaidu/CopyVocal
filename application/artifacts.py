@@ -1,4 +1,3 @@
-"""Small, dependency-free helpers for durable job artifacts."""
 from __future__ import annotations
 
 import hashlib

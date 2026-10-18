@@ -1,5 +1,3 @@
-"""Acoustic transition regression tests independent of pitch and the vocoder."""
-
 import unittest
 from copy import deepcopy
 

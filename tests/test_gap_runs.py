@@ -1,5 +1,3 @@
-"""Regression checks for sparse untranscribed activity and cautious fallback."""
-
 import unittest
 
 import numpy as np

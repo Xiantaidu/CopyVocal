@@ -1,11 +1,3 @@
-"""CPU checks for the desktop interface's contracts.
-
-These run under the offscreen Qt platform, so they need no window and no GPU.
-They cover what the interface promises: option validation, the command it
-builds, real worker output turned into stage states, and artifact values shown
-without being recomputed. Pipeline behaviour itself is covered by
-tests/test_application.py.
-"""
 from __future__ import annotations
 
 import json

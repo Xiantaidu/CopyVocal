@@ -1,5 +1,3 @@
-"""Regressions for acoustic releases without leaking rejected lyrics."""
-
 import tempfile
 import unittest
 from pathlib import Path

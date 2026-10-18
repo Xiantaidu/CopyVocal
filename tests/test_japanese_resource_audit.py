@@ -1,5 +1,3 @@
-"""Check that Japanese resource auditing rejects missing, changed, or linked bytes."""
-
 from pathlib import Path
 import tempfile
 import unittest

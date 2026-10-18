@@ -1,5 +1,3 @@
-"""Region-aware student timing and pitch correction."""
-
 from __future__ import annotations
 
 import math
@@ -17,11 +15,7 @@ from .dynamics import reference_transition_gain
 def _register_diagnostics(plan: dict, limit: int = 8) -> dict:
     """The pitch plan for the log, without the full per-region measurement table.
 
-    ``region_shifts_cents`` is kept: it is one number per region and is the actual
-    record of what each word was moved by, which is the point of adaptive
-    placement. The ``regions`` entries carry both measured levels and their own
-    reasons and would make the log unreadable.
-    """
+    ``region_shifts_cents`` is kept: it is the record of what each word moved by."""
     summary = {key: value for key, value in plan.items() if key != "regions"}
     shifts = [(index, float(value)) for index, value in enumerate(plan.get("region_shifts_cents", []))
               if abs(float(value)) > 0.0]
@@ -194,15 +188,7 @@ def _crossfade_splices(mel: np.ndarray, times: np.ndarray, source_times: np.ndar
                        transitions: list[dict], *, window_seconds: float = 0.012) -> list[dict]:
     """Blend mel across a constrained window edge that meets a discontinuous source.
 
-    A constrained transition hands its edge rate to the neighbouring region
-    through its outer anchor, so an ordinary joint needs no blend: the source
-    position is continuous and only the tempo changes, gradually. Where the
-    searched warp left a genuine source discontinuity at the edge -- a removed
-    insertion, or a bite taken out of an earlier map -- the two sides no longer
-    share source material and concatenating them would click. An equal-power
-    blend over a bounded window removes that click without moving either side's
-    timing. The lyric map, F0 gate and semantic mask are untouched.
-    """
+    A genuine source discontinuity would click; an equal-power blend removes it."""
     edits = []
     if not transitions or len(times) < 4:
         return edits
@@ -278,27 +264,7 @@ def render_student(
 ) -> tuple[np.ndarray, dict]:
     """Render student timbre against a teacher pitch/timing reference.
 
-    ``full`` and ``time_only`` use the teacher sample count. ``identity``
-    and ``pitch_only`` retain the student sample count for controlled A/B
-    experiments. Identity is neural reconstruction, not a passthrough.
-    Three independent options shape the correction. ``change_timing`` warps the
-    student's timeline onto the teacher's; without it the student's own timeline
-    is kept and only pitch can change. ``pitch_mode`` is a three-way switch:
-    ``off`` leaves the pitch exactly as sung, ``teacher`` moves the result into
-    the teacher's register at the teacher's own level, and ``adaptive`` puts each
-    word on the teacher's note level while keeping the melody in the student's
-    own register. ``map_teacher_pitch`` decides whose contour is sung, and it
-    only applies to the ``teacher`` mode: ``off`` and ``adaptive`` always keep
-    the student's own pitch movement.
-    Per-region anchors prevent missing/extra words from contaminating maps.
-    Missing/uncertain lyrics are muted; acoustic fallbacks require opt-in.
-    Continuous acoustic maps preserve safe interword audio without promoting
-    it to semantic support. Bounded edge context remains at other boundaries.
-    ``target_pitch_path`` optionally exports compact NPZ arrays for independent
-    verification: times, f0_hz, source_times, supported, rendered and
-    time_map_refined and acoustic_energy_gain, with separate source and target
-    voicing. Reference-relative quiet gains apply after synthesis.
-    """
+    Missing or uncertain lyrics are muted; acoustic fallbacks require opt-in."""
     if mode not in {"identity", "pitch_only", "time_only", "full"}:
         raise ValueError(f"Unknown rendering mode: {mode}")
     pitch_policy = resolve_pitch_policy(pitch_mode, map_teacher_pitch)
@@ -346,8 +312,8 @@ def render_student(
             regions, student_analysis.get("words", []), count / sr, len(audio) / sr,
             allow_fallback=allow_acoustic_fallback, minimum_quality=minimum_quality,
         )
-        # Full acoustic transitions own their gaps and neighboring phone windows.
-        # Do not layer the previous held release/attack over these trajectories.
+        # Acoustic transitions own their gaps; do not layer held release/attack
+        # context over those trajectories.
         contexts = [context for context in contexts if not any(
             min(context["teacher_end"], edit["teacher_end"]) >
             max(context["teacher_start"], edit["teacher_start"]) for edit in acoustic_transitions)]
@@ -374,8 +340,7 @@ def render_student(
         mel = source_mel
     student_f0, student_voiced = sample_pitch(student_analysis["pitch"], source_times)
     # identity and time_only are the pitch-preserving halves of the A/B set, so
-    # their pitch behaviour is fixed by the mode name: the switches shape the
-    # corrected render and the pitch_only experiment, not these two.
+    # their pitch is fixed by the mode name rather than by the switches.
     effective_policy = "none" if mode in {"identity", "time_only"} else pitch_policy
     allowed = [bool(_allowed(region, allow_acoustic_fallback, minimum_quality)) for region in regions]
     pitch_regions = [region for region, keep in zip(regions, allowed)
@@ -387,14 +352,12 @@ def render_student(
     if effective_policy == "none":
         f0 = student_f0
     elif per_word:
-        # Adaptive placement: the student's own contour, with each word moved onto
-        # the teacher's note level expressed in the student's own register, so the
-        # melody stays inside the student's range while the notes line up.
+        # Adaptive placement moves each word onto the teacher's note level inside
+        # the student's own register, so the melody stays in the student's range.
         shifts = frame_note_shifts(pitch_regions, pitch_plan["region_shifts_cents"], times,
                                   clock="teacher" if warped else "student")
         f0 = np.where(student_voiced, shifted_f0(student_f0, shifts), 0).astype(np.float32)
     elif teacher_contour:
-        # Sample the teacher's own curve, on whichever clock the output uses.
         if warped:
             teacher_times, matched = times, np.ones(len(times), dtype=bool)
         else:
@@ -405,9 +368,8 @@ def render_student(
                 minimum_quality=minimum_quality,
             )
         teacher_f0, teacher_voiced = sample_pitch(teacher_analysis["pitch"], teacher_times)
-        # The contour option is what puts the teacher's pitch on the student; the
-        # register option decides whether it is then moved into the student's own
-        # range. One constant, never a per-word edit.
+        # The contour option puts the teacher's pitch on the student; the register
+        # option then moves it into the student's range as one constant.
         teacher_f0 = shifted_f0(teacher_f0, pitch_plan["contour_shift_cents"])
         target = np.where(teacher_voiced & student_voiced, teacher_f0, 0).astype(np.float32)
         if warped:
@@ -417,17 +379,17 @@ def render_student(
             # student's own material, so it keeps the student's own pitch.
             f0 = np.where(matched, target, np.where(student_voiced, student_f0, 0)).astype(np.float32)
     else:
-        # The student's own contour is kept and only moved by the register
-        # difference, which is zero when the student's register is the target.
+        # The student's own contour, moved by the register difference (zero when
+        # the student's register is the target).
         f0 = np.where(student_voiced,
                       shifted_f0(student_f0, pitch_plan["contour_shift_cents"]),
                       0).astype(np.float32)
     f0[~rendered] = 0
     if (effective_policy in ("student_contour_teacher_register", "teacher_contour_student_register")
             and not pitch_plan["offset_available"] and pitch_plan.get("offset_reason")):
-        # The move the user asked for needs a measured register difference, and the
-        # plan refused to measure one. Say so plainly rather than letting the render
-        # look like the move was applied.
+        # The move the user asked for needs a measured register difference, and
+        # the plan refused to measure one; say so rather than let the render look
+        # like the move was applied.
         warnings.append(f"The requested pitch move was not applied: {pitch_plan['offset_reason']}")
     if per_word and pitch_plan["applied"]:
         measured = pitch_plan["note_shift_measured_count"]
@@ -451,9 +413,8 @@ def render_student(
                 supported=valid, rendered=rendered, acoustic_context=context_mask,
                 time_map_refined=refined,
                 acoustic_energy_gain=energy_gain,
-                # Metadata keeps the target self-describing: verification needs to
-                # know which pitch reference was aimed at before it can judge
-                # agreement honestly.
+                # Metadata keeps the target self-describing so verification knows
+                # which pitch reference was aimed at.
                 pitch_policy=np.array(effective_policy),
                 register_offset_cents=np.float64(pitch_plan["offset_cents"]),
                 register_offset_available=np.bool_(bool(pitch_plan["offset_available"])),
@@ -464,7 +425,7 @@ def render_student(
     waveform = vocoder.synthesize(mel, f0, sample_count=count, chunk_frames=chunk_frames)
     waveform = np.asarray(waveform, dtype=np.float32)
     # Apply once after synthesis so neural excitation cannot defeat a quiet
-    # reference. Linear sample interpolation keeps the envelope continuous.
+    # reference; linear interpolation keeps the envelope continuous.
     if np.any(energy_gain < 1):
         for first in range(0, count, 1 << 20):
             last = min(count, first + (1 << 20))

@@ -1,10 +1,3 @@
-"""Drive one real job through the window's own code path and report what happened.
-
-This is the end-to-end check the unit tests cannot make: a real child process,
-real worker output, and the stage table the window would display. Run with:
-
-    .\\python\\python.exe -X utf8 scripts\\gui_e2e_probe.py
-"""
 from __future__ import annotations
 
 import os

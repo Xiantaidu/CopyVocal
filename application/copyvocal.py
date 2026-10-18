@@ -1,4 +1,3 @@
-"""CopyVocal orchestration with process boundaries between GPU backends."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -13,6 +12,8 @@ from application.artifacts import ROOT, code_fingerprint, file_hash, read_json, 
 from application.languages import SUPPORTED_LANGUAGES
 
 
+# Each worker runs in its own process so a GPU backend's contexts are released
+# before the next backend starts.
 def run_worker(script: str, arguments: list[str], output: Path) -> None:
     command = [sys.executable, "-X", "utf8", "-u", str(ROOT / "scripts" / script), *arguments]
     environment = os.environ.copy()

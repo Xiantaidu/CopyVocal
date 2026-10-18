@@ -1,5 +1,3 @@
-"""Pitch and duration correction."""
-
 from .pitch import sample_pitch
 from .renderer import render_student
 

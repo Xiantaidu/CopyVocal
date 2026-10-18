@@ -1,26 +1,3 @@
-"""CPU checks for the three-way pitch switch, the contour checkbox and the policies.
-
-The switch and the checkbox answer different questions:
-
-* ``pitch_mode`` decides where the pitch lands -- ``off`` leaves it exactly as
-  sung, ``teacher`` moves the result into the teacher's register, and
-  ``adaptive`` puts each word on the teacher's note level while the melody as a
-  whole stays in the student's own register.
-* ``map_teacher_pitch`` decides whose moment-to-moment pitch movement is sung.
-  It applies to ``teacher`` and ``adaptive``; ``off`` does not touch the pitch,
-  so it has no contour to choose.
-
-The promises these tests exist to protect, all of them learned from reported
-defects:
-
-* With the switch off the pitch is **exactly** what the student sang. Asking
-  only for a timing change must not alter the pitch, not even per word.
-* In ``teacher`` mode the move is the measured register difference, applied as
-  one global constant rather than per-word corrections.
-* In ``adaptive`` mode a word is moved onto its target note, and a student who
-  already sings the right melody below the teacher is not moved at all.
-"""
-
 from __future__ import annotations
 
 import tempfile
@@ -54,7 +31,6 @@ def pitch_track(times, f0, voiced=None):
 
 
 def level_edges(bounds, levels):
-    """A pitch track that holds one level inside each interval."""
     times, f0 = [], []
     for (start, stop), level in zip(bounds, levels):
         for value in np.linspace(start + 0.02, stop - 0.02, 5):
@@ -139,10 +115,7 @@ class PolicyResolutionTests(unittest.TestCase):
 class SustainedNoteTests(unittest.TestCase):
     """The per-word level reads the note that was held, not the word's median.
 
-    Every case here is a real defect found on the included material: the
-    within-word pitch span has a median of about 240 cents, so what counts as
-    "the note" decides whether a word gets corrected at all.
-    """
+    The within-word span median of about 240 cents is why the reading matters."""
 
     def test_a_plain_held_note_is_returned_at_its_own_level(self):
         cents = np.full(30, 500.0)
@@ -156,9 +129,8 @@ class SustainedNoteTests(unittest.TestCase):
         self.assertAlmostEqual(level, 700.0, delta=1.0)
 
     def test_a_vowel_that_occupies_most_of_the_word_is_the_level(self):
-        # The measured case: on the included pairs the word is mostly the note, with
-        # a glide and an onset taking the rest. Reading the note is what the plain
-        # median fails at, because the glide pulls it down.
+        # The measured case: the word is mostly the note, with a glide and an onset
+        # taking the rest. A plain median fails here because the glide pulls it down.
         word = np.r_[np.linspace(-250.0, 0.0, 12), np.full(30, 0.0)]
         level, share = _sustained_cents(word)
         self.assertAlmostEqual(level, 0.0, delta=10.0)
@@ -173,11 +145,9 @@ class SustainedNoteTests(unittest.TestCase):
         self.assertAlmostEqual(_sustained_cents(falling)[0], 0.0, delta=10.0)
 
     def test_a_word_spent_mostly_on_the_glide_is_the_known_limitation(self):
-        # An extreme shape: the glide is longer than the note it lands on. The
-        # histogram peak then sits inside the glide, so the reading lands between
-        # the glide and the note. Recorded here rather than papered over, because it
-        # is the shape this estimator cannot separate and it is why the per-word
-        # results are reported with their own measured error.
+        # An extreme shape: the glide is longer than the note it lands on, so the
+        # histogram peak sits inside the glide. Recorded rather than papered over,
+        # because it is why per-word results carry their own measured error.
         word = np.r_[np.linspace(-200.0, 0.0, 17), np.full(13, 0.0)]
         level, _ = _sustained_cents(word)
         self.assertLess(level, 0.0)                        # reads somewhere in the glide
@@ -280,8 +250,6 @@ class RegisterPlanTests(unittest.TestCase):
 
 
 class AdaptivePlacementTests(unittest.TestCase):
-    """The per-word note placement, which only the adaptive mode may use."""
-
     def test_only_the_adaptive_policy_places_notes_individually(self):
         self.assertEqual(PER_WORD_PLACEMENT_POLICIES, ("student_contour_student_register",))
 
@@ -299,8 +267,6 @@ class AdaptivePlacementTests(unittest.TestCase):
         self.assertEqual(plan["placement"], "per_word")
 
     def test_a_sharp_word_is_moved_down_by_exactly_its_own_error(self):
-        # Three semitones sharp of its target, so the correction is -300 cents and
-        # the other two words are untouched.
         plan = register_pitch_plan(regions(3), [True] * 3,
                                    level_edges([(0, 1), (1, 2), (2, 3)], TEACHER_LEVELS),
                                    level_edges([(0, 1), (1, 2), (2, 3)], SHARP_MIDDLE),
@@ -314,8 +280,6 @@ class AdaptivePlacementTests(unittest.TestCase):
         self.assertEqual(plan["note_shift_applied_count"], 1)
 
     def test_the_placed_level_is_inside_the_students_own_range(self):
-        # After the shift the sharp word must land on the student's own level for
-        # that note, not on the teacher's absolute level.
         plan = register_pitch_plan(regions(3), [True] * 3,
                                    level_edges([(0, 1), (1, 2), (2, 3)], TEACHER_LEVELS),
                                    level_edges([(0, 1), (1, 2), (2, 3)], SHARP_MIDDLE),
@@ -372,8 +336,6 @@ class AdaptivePlacementTests(unittest.TestCase):
 
 
 class FrameShiftTests(unittest.TestCase):
-    """The per-frame shift track, and its behaviour at word joints."""
-
     def test_a_word_holds_one_shift_across_its_whole_length(self):
         times = (np.arange(400) + 0.5) * 0.01
         shifts = [200.0]
@@ -424,11 +386,8 @@ class FrameShiftTests(unittest.TestCase):
 
 
 class RendererOptionTests(unittest.TestCase):
-    """The switch through the renderer, with a three-region fixture."""
-
     def fixture(self, student_levels, teacher_levels=None):
         teacher = analysis(132300, 440.0)
-        # Give the teacher its own per-region levels when a test needs them.
         if teacher_levels is not None:
             teacher["pitch"] = level_edges([(index, index + 1) for index in range(3)], teacher_levels)
         student = analysis(264600, student_levels[0])
@@ -530,7 +489,6 @@ class RendererOptionTests(unittest.TestCase):
         self.assertAlmostEqual(float(np.median(voiced)), LOW, delta=1.0)
 
     def warbling_fixture(self):
-        """A teacher who warbles widely against a student singing a steady note."""
         teacher = analysis(132300, 440.0)
         times = np.arange(300) * 0.01
         teacher["pitch"] = pitch_track(times, 440.0 * 2 ** (np.sin(times * 30) * 0.5 / 12))

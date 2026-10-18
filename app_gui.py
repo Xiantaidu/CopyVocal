@@ -1,9 +1,3 @@
-"""Start the CopyVocal desktop interface.
-
-Run through run_gui.bat, or directly:
-
-    .\\python\\pythonw.exe -X utf8 app_gui.py
-"""
 from __future__ import annotations
 
 import multiprocessing

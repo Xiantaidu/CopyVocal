@@ -1,5 +1,3 @@
-"""Behavioral tests for correspondence and phoneme-aware time editing."""
-
 import copy
 import json
 import unittest

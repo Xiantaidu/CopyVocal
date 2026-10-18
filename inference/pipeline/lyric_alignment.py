@@ -1,8 +1,3 @@
-"""Lyric-alignment stage: phoneme/text ASR followed by HubertFA alignment.
-
-Owns the temporary chunk wav/.lab file protocol shared with the HFA stage;
-nothing outside this module reads those files.
-"""
 from __future__ import annotations
 
 import logging
@@ -64,9 +59,6 @@ def run_qwen_asr_and_fa(
     japanese_g2p_engine="kashi-g2p-onnx",
     kashi_g2p_model_path="",
 ):
-    """
-    Runs ASR using the Qwen runtime with batching and prepares .lab files for HubertFA.
-    """
     all_results, chunk_indices = batch_transcribe_asr(
         chunks,
         sr,
@@ -161,12 +153,6 @@ def run_pinyin_asr(
 
 @dataclass(frozen=True)
 class _AlignmentOutcome:
-    """Result of the lyric-alignment stage.
-
-    ``aligned`` is the final run_lyric_alignment flag after every fallback
-    decision along the way.
-    """
-
     chars_dict: dict
     pred_dict: dict
     chunk_logs: list
@@ -220,9 +206,7 @@ def _export_chunk_wavs_from_temp(
 ) -> None:
     """Copy the stage's chunk_N.wav files out under the {key}_{idx:03d} naming.
 
-    Mirrors the WAV half of hfa_api.export_hfa_artifacts so the chunks switch
-    yields the same per-chunk WAV + TextGrid pairs on the TiFA path.
-    """
+    Mirrors the WAV half of hfa_api.export_hfa_artifacts for the TiFA path."""
     import shutil
 
     for chunk_idx in range(chunk_count):
@@ -256,9 +240,7 @@ def _run_lyric_alignment(
 ) -> _AlignmentOutcome:
     """Stages 1+2: phoneme/text ASR followed by forced alignment (HFA or TiFA).
 
-    Owns the temporary directory holding the chunk wavs and .lab files;
-    nothing outside this stage reads them.
-    """
+    Owns the temporary directory holding the chunk wavs and .lab files."""
     def _check_cancel():
         if cancel_checker and cancel_checker():
             raise InterruptedError("Task was cancelled")
@@ -433,9 +415,8 @@ def _run_lyric_alignment(
                     export_textgrid = ("textgrid" in ctx.output_format_set) or export_chunks
                     if export_textgrid:
                         # Pass the stem-keyed mapping so each TextGrid is named
-                        # by its real chunk index and pairs with the matching
-                        # {output_key}_NNN.wav (pred_dict is in rglob order, not
-                        # positionally aligned to the numeric chunk indices).
+                        # by its real chunk index and pairs with the matching WAV
+                        # (pred_dict is in rglob order, not chunk-index order).
                         export_textgrids(
                             pred_dict,
                             ctx.output_dir,

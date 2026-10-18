@@ -1,4 +1,3 @@
-"""CPU checks for analysis ownership, silence, provenance, and UV handling."""
 from __future__ import annotations
 
 import json

@@ -1,5 +1,3 @@
-"""Reproduce short PC-NSF reconstruction and pitch-control stress checks."""
-
 from __future__ import annotations
 
 import argparse
@@ -38,7 +36,6 @@ def measure_pitch(audio, sr, target_times, target_f0):
 def select_vowel(analysis):
     pitch = analysis["pitch"]
     best = None
-    # Choose an observed long vowel with low pitch variation; exclude consonants.
     vowels = {"a", "o", "e", "i", "u", "v", "ai", "ei", "ao", "ou", "an", "en", "ang", "eng", "ong", "ia", "ie", "iao", "iu", "ian", "in", "iang", "ing", "iong", "ua", "uo", "uai", "ui", "uan", "un", "uang", "ueng", "ve", "van", "vn"}
     for word in analysis["words"]:
         for phone in word.get("phonemes", []):
@@ -61,7 +58,7 @@ def select_vowel(analysis):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description="Reproduce short PC-NSF reconstruction and pitch-control stress checks.")
     parser.add_argument("--source", type=Path, default=Path("Student.wav"))
     parser.add_argument("--analysis", type=Path, default=Path("outputs/short/student.analysis.json"))
     parser.add_argument("--output", type=Path, default=Path("outputs/vocoder_smoke"))

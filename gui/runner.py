@@ -1,15 +1,3 @@
-"""Run the command-line pipeline in a child process and report its progress.
-
-The interface adds no inference of its own: the pipeline already isolates GPU
-backends behind worker processes, so this class starts one child, streams its
-merged output, and translates the messages the workers actually write into
-pipeline stages.
-
-Two properties are deliberate. Cancelling kills the whole process tree,
-because the child owns its own workers. And the stage table contains only
-markers observed in real runs: the correspondence stage prints nothing at all,
-so it is derived from the surrounding stages rather than guessed from prose.
-"""
 from __future__ import annotations
 
 import os
@@ -25,12 +13,11 @@ from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, Signal
 from application.artifacts import ROOT
 from gui import text as T
 
-# Ordered stages as the pipeline runs them, with what each one accomplishes. The
-# keys are the pipeline's own vocabulary; the labels are what the window shows.
+# Ordered stages as the pipeline runs them: (key, label).
 STAGES: tuple[tuple[str, str], ...] = T.STAGE_LABELS
 
-# Percent shown when each stage has just finished. The correspondence stage runs
-# in-process between two workers and is much shorter than analysis or synthesis.
+# Percent shown when each stage has just finished; correspondence runs in-process
+# between two workers and is much shorter than analysis or synthesis.
 _STAGE_PERCENT = {"analysis": 58, "alignment": 63, "render": 80,
                   "verification": 90, "timing_verification": 95, "review": 100}
 
@@ -103,7 +90,6 @@ class PipelineRunner(QObject):
         self._active = False   # True between start() and the finish signal
         self._tail = ""        # partial line held between reads
 
-    # ── Queries ───────────────────────────────────────────────────
     @property
     def running(self) -> bool:
         return self._active and self._process is not None
@@ -115,9 +101,7 @@ class PipelineRunner(QObject):
     def is_stage_enabled(key: str, request) -> bool:
         """Whether this request is expected to reach a stage at all.
 
-        Correspondence runs in the parent process from whatever analysis the
-        output directory holds, so it happens even when analysis is reused.
-        """
+        Correspondence runs in-process even when analysis is reused."""
         if key == "analysis":
             return not request.skip_analysis
         if key in {"alignment", "render", "review"}:
@@ -128,7 +112,6 @@ class PipelineRunner(QObject):
             return not request.analyze_only and request.verify_timing
         return True
 
-    # ── Control ───────────────────────────────────────────────────
     def start(self, request) -> None:
         """Write the settings file and launch scripts/copyvocal_cli.py."""
         if self.running:
@@ -189,7 +172,6 @@ class PipelineRunner(QObject):
             return True
         return self._process.waitForFinished(timeout_ms)
 
-    # ── Output handling ───────────────────────────────────────────
     def _read(self) -> None:
         if self._process is None:
             return
@@ -264,7 +246,6 @@ class PipelineRunner(QObject):
             return
 
     def _analysis_percent(self, phase: str, track: str, fraction: float) -> None:
-        """Map an analysis sub-step onto the analysis share of the bar."""
         for name, label, start, stop in _ANALYSIS_SLOTS:
             if name == phase and label == track:
                 span = _STAGE_PERCENT["analysis"]

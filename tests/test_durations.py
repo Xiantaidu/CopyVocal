@@ -1,12 +1,3 @@
-"""Consonant-preserving duration budgets for constrained acoustic transitions.
-
-The failure these tests lock down is audible and specific: a fricative or
-plosive stretched to cover a teacher's inter-word rest becomes a static hiss.
-Consonants must keep the length the student sang, quieter material and vowels
-carry the timing difference, and the rate change must be blended rather than
-stepped at the joint.
-"""
-
 import unittest
 
 import numpy as np
@@ -174,7 +165,6 @@ class ConstrainedMappingTests(unittest.TestCase):
                                                 window=(0.0, 0.40))
         self.assertAlmostEqual(float(info["planned_seconds"][0]), 0.10, places=6)
         self.assertFalse(info["consonant_stretched"])
-        # The fricative keeps its sung seconds in the output clock.
         self.assertAlmostEqual(float(np.interp(0.10, query, mapped)), 0.10, places=3)
         self.assertAlmostEqual(float(mapped[-1]), 0.40, places=6)
 

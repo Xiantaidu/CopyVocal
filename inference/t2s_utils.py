@@ -6,7 +6,6 @@ _OPENCC_LOCK = threading.Lock()
 
 
 def get_opencc():
-    """Lazily initialize and return the global OpenCC instance for t2s conversion."""
     global _OPENCC_INSTANCE
     if _OPENCC_INSTANCE is not None:
         return _OPENCC_INSTANCE
@@ -20,11 +19,6 @@ def get_opencc():
 
 
 def traditional_to_simplified(text: str) -> str:
-    """Convert Traditional Chinese text to Simplified Chinese using OpenCC (t2s).
-
-    Non-Chinese text, punctuation, and already-simplified characters are preserved.
-    Safe on empty/None inputs.
-    """
     if not text:
         return ""
     try:

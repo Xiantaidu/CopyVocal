@@ -1,9 +1,3 @@
-"""Reference-relative level ceilings for continuous acoustic transitions.
-
-Only waveform energy is compared. Pitch voicing is deliberately absent: a
-fricative or a breath can be unvoiced and still need its full acoustic level.
-"""
-
 from __future__ import annotations
 
 import numpy as np
@@ -39,7 +33,6 @@ def _rms(energy: np.ndarray, query: np.ndarray, sample_rate: int) -> np.ndarray:
 
 
 def _smooth_rms(energy: np.ndarray, query: np.ndarray, sample_rate: int) -> np.ndarray:
-    """Round the end of an RMS window so exact silence has no gain cliff."""
     result = np.zeros(np.asarray(query).shape, dtype=np.float64)
     offsets = np.arange(-10, 11, dtype=np.float64) / 1000
     weights = 11 - np.abs(np.arange(-10, 11))
@@ -87,16 +80,7 @@ def reference_transition_gain(
 ) -> tuple[np.ndarray, list[dict]]:
     """Suppress source carryover only where the teacher is relatively quiet.
 
-    Each singer's original flanking phones establish an independent local level.
-    At teacher levels below -20 dB relative to those phones, the mapped source is
-    capped with 6 dB headroom. The ceiling reaches full strength below -30 dB.
-    Continuous teacher consonants retain their energy; no pitch/UV labels enter
-    this calculation. Gain is never boosted or set to zero, and its short outer
-    shoulders remain inside the transition's fixed phone anchors.
-
-    Semantic support, time maps and F0 remain untouched. The caller applies the
-    returned frame gain to student-derived synthesis features or waveform.
-    """
+    Only waveform energy is compared; gain is never boosted or set to zero."""
     times = np.asarray(times, dtype=np.float64)
     source_times = np.asarray(source_times, dtype=np.float64)
     if (sample_rate <= 0 or times.ndim != 1 or times.shape != source_times.shape

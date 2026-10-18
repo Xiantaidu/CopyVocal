@@ -18,7 +18,6 @@ _ENGLISH_DICT_WORD_RE = re.compile(r"[A-Za-z]+(?:['\-][A-Za-z]+)*")
 
 
 def _split_english_words(text: str) -> list[str]:
-    """Split English ASR/reference text into lowercase CMU-dictionary-friendly words."""
     cleaned = str(text or "").replace("’", "'")
     return [word.lower() for word in _ENGLISH_DICT_WORD_RE.findall(cleaned)]
 
@@ -45,7 +44,6 @@ def _normalize_asr_phoneme_token(token: str) -> str:
 
 
 def _phoneme_tokens_to_romaji_moras(tokens):
-    """Convert phoneme-ASR token stream to romaji-mora tokens for HFA dictionary mode."""
     if not tokens:
         return []
 
@@ -117,7 +115,6 @@ def _phoneme_tokens_to_romaji_moras(tokens):
 
 
 def _align_direct_phoneme_moras_with_matcher(language, lyric_output_mode, matcher, romaji_moras):
-    """Try to snap direct phoneme-ASR mora output to the provided reference lyrics."""
     if not matcher or not romaji_moras:
         return None
 
@@ -234,9 +231,6 @@ def get_ja_g2p(engine: str = "kashi-g2p-onnx", model_dir=None):
     return _ja_g2p
 
 def create_lyric_matcher(language, original_lyrics, **kwargs):
-    """
-    Creates and initializes a LyricMatcher if original_lyrics is provided.
-    """
     matcher = None
     if original_lyrics and original_lyrics.strip():
         matcher_lang = language if language in ["zh", "en", "ja", "yue"] else "zh"
@@ -258,10 +252,6 @@ def process_asr_to_phonemes(
     japanese_g2p_engine="kashi-g2p-onnx",
     kashi_g2p_model_path="",
 ):
-    """
-    Processes batched ASR text, aligns with original lyrics if available, 
-    and generates .lab phoneme files.
-    """
     # English uses dictionary word lookups inside HubertFA, so its G2P model is
     # unnecessary here; the .lab content is the lowercased word sequence itself.
     g2p_model = None
@@ -326,13 +316,9 @@ def process_asr_to_phonemes(
             continue
 
         match_status = "No original lyrics provided"
-        # TiFA reads chunk_N.txt in preference to the .lab (HubertFA ignores
-        # .txt). Default to the raw ASR text -- for hanzi text TiFA's own G2P
-        # adds polyphone disambiguation -- but when the matcher corrected the
-        # reading, feed TiFA the matched phonetics: otherwise TiFA
-        # re-transcribes the raw ASR text and the reference reading never
-        # reaches the notes (ja lyrics kept the ASR's mishearings while the
-        # corrected moras sat unused in the .lab).
+        # TiFA reads chunk_N.txt in preference to the .lab and defaults to the
+        # raw ASR text; feed it the matched phonetics when the matcher corrected
+        # the reading, or the corrected reading never reaches the notes.
         tifa_text = raw_text
         if direct_phoneme_tokens:
             if language == "zh-pinyin":

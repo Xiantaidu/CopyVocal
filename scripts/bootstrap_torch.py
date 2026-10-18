@@ -1,4 +1,3 @@
-"""Copy a compatible local PyTorch distribution into the isolated runtime."""
 from __future__ import annotations
 
 import argparse
@@ -14,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description="Copy a compatible local PyTorch distribution into the isolated runtime.")
     parser.add_argument("--site-packages", type=Path, required=True)
     args = parser.parse_args()
     source = args.site_packages.resolve(strict=True)

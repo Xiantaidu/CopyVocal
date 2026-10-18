@@ -1,5 +1,3 @@
-"""Regression tests for bounded acoustic context around lyric islands."""
-
 from copy import deepcopy
 import math
 import unittest

@@ -1,5 +1,3 @@
-"""Prevent audible unvoiced transitions from becoming artificial silence."""
-
 from pathlib import Path
 import tempfile
 import unittest

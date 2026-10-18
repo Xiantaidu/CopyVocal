@@ -55,14 +55,7 @@ def _quantize_notes_simple(notes: list[Any], tempo: float, quantization_step: in
 def _quantize_notes_smart(notes: list[Any], tempo: float, quantization_step: int, simplicity: float):
     """Smart rhythmic alignment, strictly per the reference smart_quantize.py.
 
-    The notes live in PPQ-480 ticks (one quarter note = tempo*8 seconds-ticks),
-    so the engine's own ``smart_quantize_musical`` wrapper applies unchanged:
-    the correction grid is the engine's fixed 128th note (15 ticks, no
-    bar/measure awareness — the importance ladder is relative to the beat),
-    ``quantization_step`` only toggles quantization on/off, and overlapping
-    notes that make the rhythmic chain infeasible report failure — the notes
-    are then left unchanged, exactly like the reference's MIDI path.
-    """
+    Notes live in PPQ-480 ticks; infeasible chains leave them unchanged."""
     if quantization_step <= 0 or not notes:
         return
 
@@ -97,6 +90,5 @@ def quantize_notes(
 
 
 def should_apply_quantization(mode: str, quantization_step: int) -> bool:
-    # step <= 0 ("no quantization") must disable every mode.
     del mode
     return quantization_step > 0

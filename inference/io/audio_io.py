@@ -1,15 +1,3 @@
-"""Audio loading through the bundled minimal ffmpeg.
-
-Every user-facing audio input takes one uniform decode path: the audio-only
-``ffmpeg.exe`` at the repository root decodes any supported container straight
-to raw float32 PCM on stdout. Nothing is written to disk and there is no
-dependence on libsndfile's per-format read support (librosa 0.11 itself has no
-ffmpeg fallback, so formats like M4A would be unreadable without this).
-
-Waveforms are always returned as mono float32 at the requested sample rate;
-resampling and channel mixdown happen inside ffmpeg (swresample).
-"""
-
 from __future__ import annotations
 
 import os
@@ -42,9 +30,8 @@ def _find_ffmpeg() -> str:
     if found:
         return found
 
-    # Finder-launched apps receive a deliberately small PATH.  Homebrew is
-    # the normal ffmpeg installation on Apple Silicon, but its bin directory
-    # is not searched unless the shell startup files were loaded first.
+    # Finder-launched apps receive a deliberately small PATH; check the usual
+    # Homebrew and system locations before giving up.
     candidates = []
     if sys.platform == "darwin":
         candidates.extend(("/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/opt/local/bin/ffmpeg"))
@@ -62,15 +49,7 @@ def _find_ffmpeg() -> str:
 def load_audio(path: str | pathlib.Path, sr: int, mono: bool = True):
     """Decode an audio file to float32 PCM with the bundled ffmpeg.
 
-    Args:
-        path: Audio file path (any format the bundled ffmpeg decodes:
-              wav/flac/mp3/ogg/opus/m4a/aac/wma/webm/aiff/...).
-        sr: Target sample rate; ffmpeg resamples via swresample.
-        mono: Downmix to one channel (all current callers want mono).
-
-    Returns:
-        Tuple of ``(waveform, sr)`` with waveform as 1-D float32.
-    """
+    Returns a 1-D float32 waveform at ``sr``; ffmpeg resamples and downmixes."""
     cmd = [
         _find_ffmpeg(),
         "-v", "error",

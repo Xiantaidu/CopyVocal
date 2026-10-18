@@ -1,5 +1,3 @@
-"""Adversarial lyric editing and CPU-only analysis/renderer contract checks."""
-
 from __future__ import annotations
 
 import copy

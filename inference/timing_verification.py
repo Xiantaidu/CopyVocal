@@ -1,8 +1,3 @@
-"""Remeasure exported word timing with independent transcription and alignment.
-
-The acoustic model receives only the exported audio and its own ASR text.
-Teacher words and times enter the comparison after output analysis finishes.
-"""
 from __future__ import annotations
 
 from collections import Counter
@@ -47,9 +42,7 @@ def _statistics(errors: list[float]) -> dict:
 def diagnose_word_audio(audio_path: str | Path, output_analysis: dict) -> dict:
     """Flag aligned word edges inside exact silence without moving boundaries.
 
-    This conservative check detects hard-muted spans. It does not classify
-    low-energy consonants, estimate articulation onsets, or change scores.
-    """
+    Conservative: detects hard-muted spans only; boundaries and scores stay unchanged."""
     analysis = copy.deepcopy(output_analysis)
     audio, rate = sf.read(str(audio_path), dtype="float32", always_2d=True)
     amplitude = np.max(np.abs(audio), axis=1)
@@ -102,10 +95,7 @@ def compare_word_timing(teacher_analysis: dict, output_analysis: dict, *, minimu
                         tolerance_seconds: float = 0.05) -> dict:
     """Compare fresh acoustic observations using monotonic lexical identity.
 
-    Zero durations disable the planner's weak acoustic-time prior: matching
-    must not select words simply because measured boundaries look correct.
-    Repeated lexical paths remain ambiguous and cannot improve error metrics.
-    """
+    Zero durations disable the weak acoustic-time prior; repeated paths stay ambiguous."""
     if not 0 <= minimum_quality <= 1 or not math.isfinite(tolerance_seconds) or tolerance_seconds <= 0:
         raise ValueError("minimum_quality must be in [0, 1] and tolerance_seconds must be positive.")
     teacher, teacher_warnings = _units(teacher_analysis, _duration(teacher_analysis))
@@ -235,16 +225,7 @@ def verify_timing(audio_path: str | Path, teacher_analysis: dict, output_dir: st
                   progress: Callable[[str], None] | None = None) -> dict:
     """Analyze exported audio alone, then compare its observations to teacher.
 
-    The pair API receives the same output file twice, so its content cache
-    performs ASR/TiFA once. Only lyrics are requested; RMVPE/GAME do not run.
-    The teacher analysis is never passed to either acoustic model.
-
-    The comparison subtracts teacher timestamps from the output's, which only
-    describes the same events when the output was rendered on the teacher clock.
-    An output that keeps the student's timeline is not compared at all: the
-    absolute boundaries describe different points in the song, so the numbers
-    would be meaningless. Such a job records the reason instead.
-    """
+    The teacher analysis is never passed to a model; a student-clock output is not compared."""
     if clock not in {"teacher", "student"}:
         raise ValueError("The output clock must be the teacher or the student timeline.")
     if clock == "student":

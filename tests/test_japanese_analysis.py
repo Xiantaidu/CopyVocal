@@ -1,4 +1,3 @@
-"""CPU checks for the local Japanese text, pronunciation, and alignment path."""
 from __future__ import annotations
 
 import json

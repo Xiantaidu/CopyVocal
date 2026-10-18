@@ -1,4 +1,3 @@
-"""Deterministic, bounded audio chunks with context and disjoint ownership."""
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
@@ -37,7 +36,6 @@ class AudioChunk:
 
 
 def downmix_safe(audio: np.ndarray) -> tuple[np.ndarray, list[str]]:
-    """Preserve the strongest channel when a mean would cancel vocal energy."""
     audio = np.asarray(audio, dtype=np.float32)
     if audio.ndim not in (1, 2):
         raise ValueError("Audio must have shape [samples] or [samples, channels].")
@@ -69,9 +67,7 @@ def slice_audio(
 ) -> list[AudioChunk]:
     """Cover every sample once in cores; use silence for cuts when available.
 
-    Context is included in the hard duration bound. Core midpoint ownership
-    removes duplicate words and notes after inference on overlapping chunks.
-    """
+    Context is inside the duration bound; core midpoint ownership removes duplicates."""
     if sample_rate <= 0 or max_seconds <= 0 or min_seconds < 0 or context_seconds < 0:
         raise ValueError("Invalid audio slicing parameters.")
     if max_seconds <= 2 * context_seconds or min_seconds > max_seconds - 2 * context_seconds:

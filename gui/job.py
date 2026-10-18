@@ -1,11 +1,3 @@
-"""Validated job settings that the desktop interface passes to the pipeline.
-
-The window reads one ``JobRequest``, validates it before a worker starts, and
-writes the same values to a per-job settings file. Passing that file as
-``--config`` keeps the command-line defaults aligned with what the interface
-displays, so unchecking an option cannot silently leave the JSON default in
-force.
-"""
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, fields
@@ -29,7 +21,6 @@ REQUIRED_ANALYSIS_FILES = ("teacher.analysis.json", "student.analysis.json")
 
 
 def _number(value: float) -> str:
-    """Format a numeric flag without a locale separator or trailing zeros."""
     return f"{float(value):g}"
 
 
@@ -38,7 +29,6 @@ def _choice(value, allowed: tuple, fallback: str) -> str:
 
 
 def suggested_output(student: str | Path) -> Path:
-    """Propose an output directory that follows the chosen student file."""
     stem = Path(student).stem if str(student).strip() else "job"
     return ROOT / "outputs" / f"{stem}.corrected"
 
@@ -98,7 +88,6 @@ class JobRequest:
         request.pitch_mode = _choice(settings.get("pitch_mode"), PITCH_MODES, request.pitch_mode)
         return request
 
-    # ── Paths and derived values ──────────────────────────────────
     @property
     def teacher_path(self) -> Path:
         return Path(self.teacher)
@@ -112,7 +101,6 @@ class JobRequest:
         return Path(self.output)
 
     def config_path(self) -> Path:
-        """Location of the per-job settings file, written inside the output."""
         return self.output_path / CONFIG_FILENAME
 
     def validate(self) -> list[str]:
@@ -149,7 +137,6 @@ class JobRequest:
         return problems
 
     def effective_config(self) -> dict:
-        """The values that the pipeline should read, including the sample rate."""
         return {"sample_rate": 44100, "onnx_device": self.onnx_device,
                 "vocoder_device": self.vocoder_device, "language": self.language,
                 "max_chunk_seconds": self.max_chunk_seconds, "context_seconds": self.context_seconds,
@@ -201,11 +188,9 @@ class JobRequest:
         return arguments
 
     def command_line(self) -> str:
-        """The equivalent run.bat invocation, for the log and for reproducibility."""
         parts = ['run.bat', *(f'"{item}"' if " " in item else item for item in self.argv())]
         return " ".join(parts)
 
-    # ── Persistence between sessions ──────────────────────────────
     def to_prefs(self) -> dict:
         values = asdict(self)
         values.pop("config", None)

@@ -1,5 +1,3 @@
-"""Continuous acoustic maps across safe, semantically matched word transitions."""
-
 from __future__ import annotations
 
 import math
@@ -59,11 +57,7 @@ def _context_knots(regions: list[dict], left_index: int, right_index: int,
                    ) -> list[tuple[float, float]]:
     """Return one knot pair outside each window edge, when the neighbours provide one.
 
-    Pinning a neighbouring anchor keeps the constrained cubic's rate at the edge
-    close to the region it joins, so tempo changes gradually across the seam
-    instead of stepping at it. That rate blending is the warp-domain crossfade:
-    the source position itself is already continuous at these anchors.
-    """
+    Pinning a neighbouring anchor keeps the cubic's rate close to that region."""
     context = []
     for index, side, edge, limit in ((left_index, "left", start, source_left),
                                      (right_index, "right", end, source_right)):
@@ -148,8 +142,8 @@ def _feature_cost(teacher: np.ndarray, student: np.ndarray,
     se -= np.percentile(se, 85)
     # Energy remains weaker than spectral shape; no pitch/UV identity assumption.
     cost += 0.15 * np.minimum(((te[:, None] - se[None, :]) / 2) ** 2, 9.0)
-    # Broadband noise is an acoustic cue even when a pitch tracker incorrectly
-    # reports voicing. Keep this cue independent of speaker cepstral offsets.
+    # Broadband noise is an acoustic cue even when a pitch tracker misreports
+    # voicing; keep it independent of speaker cepstral offsets.
     cost += 0.35 * np.minimum(((tflat[:, None] - sflat[None, :]) / 0.8) ** 2, 9.0)
     if teacher_acoustics is not None and student_acoustics is not None:
         # Absolute waveform periodicity survives local cepstral normalization.
@@ -163,10 +157,7 @@ def _feature_cost(teacher: np.ndarray, student: np.ndarray,
 def _waveform_features(audio: np.ndarray, times: np.ndarray, sample_rate: int) -> dict:
     """Measure local periodicity directly, without a pitch or voicing model.
 
-    Overlap-normalized autocorrelation searches 70--1100 Hz in 30 ms windows.
-    Short noisy breaths and low-frequency /h/ remain distinguishable from a
-    vowel, even when a pitch tracker hallucinates a stable F0 in that breath.
-    """
+    Autocorrelation searches 70--1100 Hz in 30 ms windows."""
     radius = max(2, int(round(0.015 * sample_rate)))
     size = 2 * radius
     first_lag = max(1, int(round(sample_rate / 1100)))
@@ -193,9 +184,7 @@ def _waveform_features(audio: np.ndarray, times: np.ndarray, sample_rate: int) -
 def _aperiodic_onset(features: dict, times: np.ndarray) -> tuple[float, float, float] | None:
     """Find sustained audible noise following a sustained tonal phone.
 
-    The tonal reference may lie after an initial noisy consonant. A minimum
-    30 ms noise run avoids expanding a single release burst into a long rest.
-    """
+    A 30 ms minimum run avoids expanding a single release burst into a rest."""
     if len(times) < 10:
         return None
     step = float(np.median(np.diff(times)))
@@ -224,12 +213,7 @@ def _aperiodic_onset(features: dict, times: np.ndarray) -> tuple[float, float, f
 def _noise_onset(mel: np.ndarray, times: np.ndarray) -> tuple[float, float] | None:
     """Find sustained broadband noise after an initially more tonal phone.
 
-    Both spectral flatness and high/low frequency energy must rise. Every frame
-    in the qualifying run must remain within about 30 dB of local p85 energy;
-    a silent valley becoming spectrally flat cannot establish a noise anchor.
-    A local reference makes this useful across different singers without assuming that
-    every unvoiced frame is silence, or that breath must equal a consonant.
-    """
+    Every frame in the run must stay within about 30 dB of local p85 energy."""
     if len(times) < 10 or mel.shape[0] < 4:
         return None
     energy = logsumexp(mel, axis=0) - math.log(mel.shape[0])
@@ -312,12 +296,7 @@ def _constrain(grid: np.ndarray, mapping: np.ndarray, start: float, end: float,
                step: float) -> tuple[np.ndarray, dict | None]:
     """Re-time a searched warp so consonants keep the length the student sang.
 
-    Without forced-alignment phones inside the window there is nothing to
-    protect, so the searched warp stands and the constraint is reported as not
-    applied rather than guessed at. A window that cannot be timed without
-    lengthening a consonant is also left to the searched warp and reported, so a
-    stretched fricative is never produced silently.
-    """
+    Without phones in the window the searched warp stands, reported unapplied."""
     if (student_analysis is None or regions is None or left_index is None or right_index is None):
         return mapping, None
     segments = segments_for_window(student_analysis, source_left, source_right,
@@ -374,8 +353,8 @@ def _align_window(teacher_mel: np.ndarray, student_mel: np.ndarray,
         source_progress = (source_onset - source_left) / (source_right - source_left)
         ratios = ((target_onset - start) / (source_onset - source_left),
                   (end - target_onset) / (source_right - source_onset))
-        # A sustained source breath can cover a longer teacher breath, while
-        # brief bursts retain the conservative fourfold segment limit.
+        # A sustained source breath can cover a longer teacher breath; brief
+        # bursts retain the conservative fourfold segment limit.
         maximum_ratio = (_MAX_NOISE_SEGMENT_STRETCH if student_support is not None
                          and student_support >= 0.060 else 4.0)
         if abs(target_progress - source_progress) >= 0.08 and 0.25 <= ratios[0] <= 4 and 1 / maximum_ratio <= ratios[1] <= maximum_ratio:
@@ -431,11 +410,7 @@ def refine_transition_map(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[dict]]:
     """Retain entire safe interword material using locally anchored acoustic maps.
 
-    Word correspondence remains an immutable semantic annotation. Interior phone
-    anchors bound acoustic refinements, which can borrow a changing vowel or
-    consonant trajectory when a target gap has no dedicated source samples.
-    Missing words, rejected alignments and unmatched source words are barriers.
-    """
+    Missing words and rejected alignments are barriers."""
     teacher_mel, student_mel = np.asarray(teacher_mel, dtype=float), np.asarray(student_mel, dtype=float)
     times = np.asarray(query_times, dtype=float)
     mapped, active = np.asarray(source_times, dtype=float).copy(), np.asarray(rendered, dtype=bool).copy()
@@ -476,13 +451,13 @@ def refine_transition_map(
         if (source_right <= source_left + _EPSILON
                 or (end - start) / (source_right - source_left) > _MAX_PHONE_WINDOW_STRETCH
                 or (source_gap < max(0.030, 2 * step) and target_gap > _MAX_UNSOURCED_GAP_SECONDS)):
-            # A long target rest without source material must remain unresolved;
+            # A long target rest without source material must stay unresolved;
             # spreading a tiny phone trajectory over it would create a drone.
             continue
         strategy, normalized_cost, landmark, constraint = "local_acoustic_dtw", None, None, None
         if source_gap > _EPSILON and target_gap > _EPSILON and (target_gap > 0.8 or source_gap > 0.8):
             # Preserve long real rests/breaths directly rather than forcing a
-            # large spectral alignment with weak acoustic identity evidence.
+            # large spectral alignment with weak acoustic evidence.
             if not 1 / _MAX_REAL_GAP_STRETCH <= target_gap / source_gap <= _MAX_REAL_GAP_STRETCH:
                 continue
             start, end, source_left, source_right = gap_start, gap_end, source_start, source_end

@@ -1,20 +1,3 @@
-"""Phoneme-class duration budgets for constrained acoustic time warps.
-
-A stretched fricative or plosive is the most audible failure mode of a warped
-vocal: it becomes a static hiss that listeners describe as a stuck machine. A
-stretched vowel is unremarkable by comparison. This module therefore budgets
-target time per source segment: a consonant never exceeds the length the
-student actually sang, vowels and genuinely quiet spans absorb the remaining
-time, and any unfittable remainder is reported instead of being hidden inside a
-consonant.
-
-The budget is realised as a monotone cubic through the segment boundaries. That
-curve reproduces every budgeted segment duration exactly while blending the
-rate across the joints, which is the time-warp equivalent of a crossfade: no
-seam, no frozen frame and no abrupt tempo step between a preserved consonant
-and a stretched vowel.
-"""
-
 from __future__ import annotations
 
 import math
@@ -29,13 +12,12 @@ from inference.alignment.planner import _SILENCE, _is_vowel, _phone
 _EPSILON = 1e-9
 _TOLERANCE = 1e-7
 _MINIMUM_SEGMENT_SECONDS = 0.004
-# A resting span this far below the window's phones is treated as a rest rather
-# than as breath or fricative material worth preserving at its sung length.
+# A resting span this far below the window's phones is a rest rather than
+# breath or fricative material worth preserving at its sung length.
 _SPAN_AUDIBLE_DROP_LOG = 2.30
 
-# Preferred, extended and hard rate limits per tier. Consonants are bounded
-# against their own sung length instead, because their reference is not a rate
-# but the fact that the singer already pronounced them.
+# Preferred, extended and hard rate limits per tier; consonants are bounded
+# against their own sung length because the singer already pronounced them.
 _LIMITS = {
     "vowel": ((0.80, 2.00), (0.65, 3.00), (0.45, 4.00)),
     "span": ((0.70, 1.60), (0.55, 2.20), (0.40, 3.00)),
@@ -44,9 +26,8 @@ _LIMITS = {
 # Weighted projection: a high weight resists leaving the searched duration.
 # Consonants are stiff, quiet rests are the most elastic.
 _WEIGHTS = {"vowel": 1.0, "consonant": 6.0, "span": 2.0, "quiet_span": 0.35}
-# Order in which an unfittable remainder is handed out. Consonants are absent on
-# purpose: they must never receive extra time, so an infeasible budget reports
-# itself instead of stretching one.
+# Order in which an unfittable remainder is handed out; consonants are absent on
+# purpose so an infeasible budget reports itself instead of stretching one.
 _RESIDUAL_ORDER = (("quiet_span",), ("span",), ("vowel",))
 
 
@@ -65,11 +46,7 @@ def classify_phone(label: str) -> str:
 def _tier_limits(kind: str, source: float, native: float, tier: int) -> tuple[float, float]:
     """Cumulative rate limits, so an expanded tier always contains the earlier ones.
 
-    A consonant is bounded above by the length the student actually sang in every
-    tier. The planner's own budget is a lower, preferred target rather than a
-    ceiling, so a syllable that has to give time back may compress a consonant
-    but never lengthen one.
-    """
+    A consonant is bounded above by the length the student sang in every tier."""
     if kind == "consonant":
         candidates = [(0.85 * source, source),
                       (0.70 * source, source),
@@ -87,13 +64,7 @@ def _preferred(desired: np.ndarray, kinds: list[str], source: np.ndarray,
                native: np.ndarray) -> np.ndarray:
     """Prefer the planner's budget for consonants, the searched warp elsewhere.
 
-    The searched warp is not trusted for a consonant: its cost is dominated by
-    spectral continuity, which makes stretching a stationary fricative look
-    almost free. The planner's budget already divides a syllable between its
-    consonant and its vowel, so it is the better target for that segment. Taking
-    the smaller value keeps the consonant from being ironed out to a token
-    length when the searched warp wants it shorter than the budget.
-    """
+    The warp's spectral-continuity cost makes stretching a fricative look free."""
     result = np.maximum(np.asarray(desired, dtype=float), _MINIMUM_SEGMENT_SECONDS)
     for index, kind in enumerate(kinds):
         if kind != "consonant":
@@ -129,11 +100,7 @@ def _absorb(duration: np.ndarray, kinds: list[str], energy: np.ndarray,
             minimum_seconds: float) -> tuple[np.ndarray, int | None, float]:
     """Hand an unfittable remainder to the most elastic non-consonant segments.
 
-    Consonants never appear here, and each group only gives what its hard rate
-    limit still allows. Anything left over is returned to the caller, which
-    reports the window as unresolved rather than stretching a consonant or
-    droning a vowel.
-    """
+    Anything left over is returned so the caller reports the window unresolved."""
     duration, chosen = duration.copy(), None
     for group in _RESIDUAL_ORDER:
         if abs(remainder) <= _TOLERANCE:
@@ -167,11 +134,7 @@ def plan_segment_durations(segments: list[dict], desired: np.ndarray, target: fl
                            minimum_seconds: float = _MINIMUM_SEGMENT_SECONDS) -> tuple[np.ndarray, dict]:
     """Budget target time so consonants never stretch and rests flex first.
 
-    ``segments`` partitions the source window and carries ``start``, ``end``,
-    ``kind``, ``native`` and ``energy`` per item. ``desired`` is the duration the
-    searched warp asked for. The result is a feasible duration per segment whose
-    sum equals ``target`` whenever the tier limits allow it.
-    """
+    Segments carry ``start``, ``end``, ``kind``, ``native`` and ``energy``."""
     if not segments or not math.isfinite(target) or target <= 0:
         raise ValueError("Duration planning requires segments and a positive finite target.")
     desired = np.asarray(desired, dtype=float)
@@ -203,8 +166,8 @@ def plan_segment_durations(segments: list[dict], desired: np.ndarray, target: fl
     residual_policy = "none"
     residual_segment = None
     if abs(remainder) > _TOLERANCE:
-        # Consonants are never asked to absorb time. When only they remain, the
-        # window is infeasible and the caller keeps the searched warp instead.
+        # Consonants are never asked to absorb time; when only they remain, the
+        # window is infeasible and the caller keeps the searched warp.
         duration, residual_segment, remainder = _absorb(
             duration, kinds, energy, hard_upper, remainder, minimum_seconds)
         residual_policy = "quiet_rest_then_span_then_vowel"
@@ -242,11 +205,7 @@ def monotone_segment_map(query: np.ndarray, knot_target: list[float], knot_sourc
                          context: list[tuple[float, float]] | None = None) -> np.ndarray:
     """Evaluate a monotone cubic that pins every knot exactly.
 
-    ``context`` adds knot pairs outside the window so the curve's rate at the
-    window edges blends into the neighbouring regions instead of stepping. The
-    interpolant is shape preserving, so the durational budget survives the rate
-    smoothing and the mapping stays strictly increasing.
-    """
+    ``context`` adds knots outside the window so the rate blends into neighbours."""
     target = [float(value) for value in knot_target]
     source = [float(value) for value in knot_source]
     for point_target, point_source in sorted(context or [], key=lambda item: float(item[0])):
@@ -279,13 +238,7 @@ def constrain_window_mapping(query: np.ndarray, warp_target: np.ndarray, warp_so
                              ) -> tuple[np.ndarray, dict]:
     """Re-time a searched warp so consonants keep their sung length.
 
-    ``warp_target``/``warp_source`` describe the searched acoustic warp for the
-    window; the durations it implies become the desired budget, which is then
-    projected onto the phoneme-class limits. Every segment boundary is pinned on
-    both timelines and joined by the monotone cubic in
-    :func:`monotone_segment_map`, so the rate is blended across the joints
-    instead of stepping at them.
-    """
+    Boundaries are pinned on both timelines and joined by a monotone cubic."""
     warp_target, warp_source = np.asarray(warp_target, dtype=float), np.asarray(warp_source, dtype=float)
     if (warp_target.ndim != 1 or warp_target.shape != warp_source.shape or len(warp_target) < 2
             or not np.isfinite(warp_target).all() or np.any(np.diff(warp_target) <= 0)
@@ -326,11 +279,7 @@ def segments_for_window(student_analysis: dict, source_left: float, source_right
                         mel: np.ndarray | None = None, step: float = 512 / 44100) -> list[dict]:
     """Partition a source window into phones and the rests between them.
 
-    Labels come from the forced alignment; the rest is the complement inside the
-    window, and its level relative to the window's phones decides whether it is
-    safe to stretch. An empty result means there is no phoneme evidence, and the
-    caller must leave the searched warp untouched.
-    """
+    An empty result means no phoneme evidence, so the caller keeps the warp."""
     if source_right <= source_left + _EPSILON:
         return []
     phones: list[list[float | str]] = []
@@ -351,7 +300,6 @@ def segments_for_window(student_analysis: dict, source_left: float, source_right
                 continue
         clean.append([start, end, label])
     if not any(classify_phone(str(label)) != "span" for _, _, label in clean):
-        # Silence-only labels carry no consonant to protect.
         return []
 
     owners = [(int(left_index), regions[left_index]), (int(right_index), regions[right_index])]
@@ -371,7 +319,6 @@ def segments_for_window(student_analysis: dict, source_left: float, source_right
 
 def _segment(start: float, end: float, kind: str, label: str,
              _native: float | None, owners: list[tuple[int, dict]]) -> dict:
-    """Build one segment, taking its natural duration from the owning region."""
     native = float(end - start)
     owner_index = None
     for index, region in owners:
@@ -399,7 +346,6 @@ def _span_level(segment: dict, mel: np.ndarray, step: float) -> float:
 
 
 def _mark_spans(segments: list[dict], mel: np.ndarray | None, step: float) -> None:
-    """Tag resting spans, using the window's own phones as the level reference."""
     for segment in segments:
         segment.setdefault("energy", 1.0)
     if mel is None or not getattr(mel, "shape", None) or mel.shape[1] == 0:

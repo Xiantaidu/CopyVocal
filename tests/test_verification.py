@@ -1,4 +1,3 @@
-"""CPU-only checks for measurement denominators and the independent YIN path."""
 from __future__ import annotations
 
 import json

@@ -1,5 +1,3 @@
-"""Japanese mora identity, kana readings and conservative lexical evidence."""
-
 import unittest
 from unittest.mock import patch
 

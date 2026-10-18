@@ -1,4 +1,3 @@
-"""Render controlled experiments in an isolated CUDA process."""
 from __future__ import annotations
 
 import argparse
@@ -13,7 +12,7 @@ sys.path.insert(0, str(ROOT))
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description="Render controlled experiments in an isolated CUDA process.")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--device", choices=("auto", "cuda", "cpu"), default="auto")
     parser.add_argument("--experiments", action="store_true")

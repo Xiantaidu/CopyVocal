@@ -1,4 +1,3 @@
-"""Generate a self-contained review page alongside the local audio files."""
 from __future__ import annotations
 
 from html import escape

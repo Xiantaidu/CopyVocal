@@ -1,5 +1,3 @@
-"""Inspect nonlexical vocal transitions and export CPU-only listening excerpts."""
-
 from __future__ import annotations
 
 import argparse
@@ -368,7 +366,7 @@ def run(args) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description="Inspect nonlexical vocal transitions and export CPU-only listening excerpts.")
     parser.add_argument("--baseline", type=Path, required=True)
     parser.add_argument("--candidate", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)

@@ -1,4 +1,3 @@
-"""Measure rendered audio without treating planned boundaries as observations."""
 from __future__ import annotations
 
 import gc
@@ -55,9 +54,7 @@ def _nearest(times: np.ndarray, query: np.ndarray) -> tuple[np.ndarray, np.ndarr
 def sample_measured_pitch(pitch: dict, query_times: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Sample observations with explicit availability and separate voicing.
 
-    This implementation is separate from the rendering pitch sampler. It
-    interpolates only when both bracketing observations are voiced.
-    """
+    Interpolates only when both bracketing observations are voiced."""
     query = np.asarray(query_times, dtype=np.float64)
     times, f0, voiced = _pitch_arrays(pitch)
     output = np.zeros(query.shape, dtype=np.float64)
@@ -128,7 +125,6 @@ def compare_pitch(actual: dict, reference: dict, *, selection: np.ndarray | None
 
 
 def _shifted_pitch(pitch: dict, cents: float) -> dict:
-    """One singer's pitch track transposed by a constant offset."""
     times, f0, voiced = _pitch_arrays(pitch)
     return {"times": times.tolist(), "f0_hz": (f0 * 2.0 ** (float(cents) / 1200.0)).tolist(),
             "voiced": voiced.tolist()}
@@ -149,12 +145,7 @@ def _audio_metrics(audio: np.ndarray, rate: int, expected: dict, plan: dict,
                    *, clock: str = "teacher") -> dict:
     """Measure the exported waveform against the clock it was rendered on.
 
-    ``expected`` is the analysis whose sample count the output should match: the
-    teacher's when the timing was changed, the student's when it was kept. The
-    planned edit boundaries are only indexed as output times on the teacher
-    clock; on the student clock they describe a different timeline, so the seam
-    diagnostic is skipped rather than reported against the wrong positions.
-    """
+    ``expected`` sizes the output; seam diagnostics are skipped off the teacher clock."""
     finite = np.isfinite(audio)
     safe = np.where(finite, audio, 0).astype(np.float64)
     peak = float(np.max(np.abs(safe))) if safe.size else 0.0
@@ -224,7 +215,6 @@ def _measure_rmvpe(audio: np.ndarray, rate: int, root: Path, device: str) -> dic
 
 def yin_window(frame: np.ndarray, rate: int, *, minimum_f0: float = 65.0,
                maximum_f0: float = 1100.0, threshold: float = 0.15) -> tuple[float, float]:
-    """Independent YIN cumulative difference estimate for one real audio window."""
     frame = np.asarray(frame, dtype=np.float64)
     if not len(frame) or not np.isfinite(frame).all():
         return 0.0, 0.0
@@ -265,9 +255,9 @@ def _yin_check(audio: np.ndarray, rate: int, actual: dict, teacher: dict, plan: 
     if clock == "teacher":
         eligible = voiced & (f0 >= 65) & (f0 <= 1100) & _region_mask(plan, times)
     else:
-        # The planned regions are teacher times; selecting output-clock frames with
-        # them would pick windows unrelated to the plan. The diagnostic still runs on
-        # the voiced frames the output actually has.
+        # Planned regions are teacher times; selecting output-clock frames with
+        # them would pick unrelated windows, so the diagnostic runs on all
+        # voiced frames the output actually has.
         eligible = voiced & (f0 >= 65) & (f0 <= 1100)
     # Avoid onsets and unstable observations; selection affects this diagnostic only.
     for shift in (-2, -1, 1, 2):
@@ -321,7 +311,6 @@ def _yin_check(audio: np.ndarray, rate: int, actual: dict, teacher: dict, plan: 
 
 
 def _target_clock(target_pitch_path: str | Path | None) -> str | None:
-    """Read the clock the render declared, or None when no target was written."""
     if target_pitch_path is None:
         return None
     with np.load(Path(target_pitch_path).resolve(strict=True), allow_pickle=False) as data:
@@ -337,13 +326,7 @@ def verify_output(audio_path: str | Path, teacher_analysis: dict, alignment_plan
                   clock: str | None = None) -> dict:
     """Remeasure exported output after synthesis has released accelerator memory.
 
-    ``clock`` is the timeline the output was rendered on; it defaults to what the
-    target pitch file declares. On the teacher clock the output is expected to be
-    exactly as long as the teacher after resampling, and every teacher-referenced
-    comparison is meaningful. On the student clock the output is expected to match
-    the student instead, and a teacher-timeline comparison would be comparing
-    unrelated positions, so it is reported as not measured with the reason.
-    """
+    Off the teacher clock, teacher-referenced comparisons are reported as not measured."""
     path = Path(audio_path).resolve(strict=True)
     root = Path(root).resolve() if root is not None else Path(__file__).resolve().parents[1]
     audio, rate = sf.read(str(path), dtype="float32", always_2d=True)
@@ -451,8 +434,8 @@ def verify_output(audio_path: str | Path, teacher_analysis: dict, alignment_plan
                                                        actual_duration=duration, reference_duration=expected_duration),
         }
         if clock == "teacher":
-            # These index the render target by teacher pitch times, which is only the
-            # same timeline when the output really is on the teacher clock.
+            # These index the render target by teacher pitch times, which is only
+            # the same timeline when the output really is on the teacher clock.
             rendered_on_teacher, valid = _nearest(target_times, times)
             rendered_teacher = rendered[rendered_on_teacher] & valid if len(target_times) else np.zeros(len(times), dtype=bool)
             report["coverage"]["render_supported_teacher_voiced_coverage"] = _ratio(int((rendered_teacher & teacher_voiced & in_duration).sum()), total_voiced)
@@ -468,13 +451,8 @@ def verify_output(audio_path: str | Path, teacher_analysis: dict, alignment_plan
         if (clock == "teacher" and target_policy in STUDENT_REGISTER_POLICIES
                 and abs(target_offset_cents) > 0.5):
             # The rendered melody deliberately sits in the student's register, so
-            # an absolute comparison against the teacher would measure the
-            # intended transposition as error. The aimed reference is the
-            # teacher's pitch moved by the same register offset, so that is the
-            # comparison reported here; target_pitch.npz carries the offset and
-            # actual_vs_render_target still checks what was aimed at frame by frame.
-            # A negligible offset is skipped: it is the same-number duplicate,
-            # and the separate key would only invite a meaningless comparison.
+            # an absolute comparison against the teacher would measure the intended
+            # transposition as error; the reference is the teacher's pitch moved by the same offset.
             relative_reference = _shifted_pitch(teacher_pitch, target_offset_cents)
             report["actual_vs_teacher_relative"] = {
                 "reference": f"teacher pitch moved into the student's register by {target_offset_cents:.1f} cents",
@@ -494,9 +472,7 @@ def verify_output(audio_path: str | Path, teacher_analysis: dict, alignment_plan
                 "the teacher's absolute pitch is not the intended output pitch.")
             if target_note_shifts:
                 # Adaptive placement moves words individually, so the register-shifted
-                # teacher curve is only an approximation of the aim; the render target
-                # is the exact one. Saying so keeps a correct render from being read as
-                # inaccurate against the wrong reference.
+                # teacher curve only approximates the aim; actual_vs_render_target is exact.
                 report["limitations"].append(
                     f"{target_note_shifts} word(s) were placed individually onto the teacher's own note "
                     "levels, so the register-shifted teacher curve approximates the aim rather than being "

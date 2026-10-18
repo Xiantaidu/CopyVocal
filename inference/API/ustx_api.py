@@ -19,9 +19,8 @@ UCurveInterval = 5
 USTX_RESOLUTION = 480
 USTX_VERSION = "0.7"
 
-# The melisma sustain symbol differs between MIDI and USTX: MIDI keeps "-" in
-# the lyric, while USTX (OpenUtau) writes "+~" to continue the previous
-# syllable; the same-word syllable marker "+" is the same in both.
+# Melisma sustain differs between MIDI ("-") and USTX ("+~"); the same-word
+# syllable marker "+" is the same in both.
 _USTX_LYRIC_ALIASES = {"-": "+~"}
 
 
@@ -143,7 +142,6 @@ def _build_pitd_curve(notes: list[Any], rmvpe: RmvpeResult, tempo: float) -> tup
             continue
 
         x = int(round(_to_ticks(t, tempo) / UCurveInterval) * UCurveInterval)
-        # Convert to cents offset relative to the note's semitone pitch.
         y = int(round(np.clip((float(mp) - float(note.pitch)) * 100.0, -1200, 1200)))
         pending_note_idx = note_idx
         if pending and pending[-1].x == x:

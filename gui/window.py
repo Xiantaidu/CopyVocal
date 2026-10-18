@@ -1,10 +1,3 @@
-"""Main window for the CopyVocal desktop interface.
-
-The window is a thin front end for the command-line pipeline: it collects
-validated options, shows worker output as it arrives, and presents the finished
-artifacts. It never estimates a measurement the pipeline did not write, and it
-reports unresolved jobs as unresolved rather than as success.
-"""
 from __future__ import annotations
 
 import json
@@ -57,7 +50,6 @@ class MainWindow(QMainWindow):
         self._sync_enabled()
         self.refresh_results()
 
-    # ── Construction ──────────────────────────────────────────────
     def _build(self) -> None:
         central = QWidget()
         layout = QVBoxLayout(central)
@@ -297,7 +289,6 @@ class MainWindow(QMainWindow):
         self.pitch_combo.currentIndexChanged.connect(self._sync_enabled)
         self.player.errorOccurred.connect(self._on_player_error)
 
-    # ── Collecting options ────────────────────────────────────────
     @Slot()
     def _sync_enabled(self) -> None:
         """Keep the option combination legal and the command preview current."""
@@ -307,21 +298,18 @@ class MainWindow(QMainWindow):
         self.verify_timing_check.setEnabled(not analyze)
         self.experiments_check.setEnabled(not analyze)
         # The pitch switch decides where the pitch lands and the contour checkbox
-        # decides whose pitch movement is sung inside it. Only 'off' has no contour
-        # to choose -- it does not touch the pitch at all -- so the checkbox is
-        # disabled there rather than silently ignored.
+        # decides whose pitch movement is sung inside it; 'off' has no contour to
+        # choose, so the checkbox is disabled there rather than silently ignored.
         self.pitch_map_check.setEnabled(self._pitch_mode() != "off")
         if analyze:
             self.verify_timing_check.setChecked(False)
         self.command_label.setText(self._collect().command_line())
 
     def _pitch_mode(self) -> str:
-        """The selected pitch mode, as the pipeline spells it."""
         index = self.pitch_combo.currentIndex()
         return T.PITCH_MODE_VALUES[index] if 0 <= index < len(T.PITCH_MODE_VALUES) else "off"
 
     def _collect(self) -> JobRequest:
-        """Copy the widgets into the request that the pipeline will receive."""
         request = self.request
         request.teacher, request.student = self.teacher_edit.text().strip(), self.student_edit.text().strip()
         request.output = self.output_edit.text().strip()
@@ -346,7 +334,6 @@ class MainWindow(QMainWindow):
         return request
 
     def _apply(self, request: JobRequest) -> None:
-        """Push a stored request into the widgets."""
         self.teacher_edit.setText(request.teacher)
         self.student_edit.setText(request.student)
         self.output_edit.setText(request.output)
@@ -370,7 +357,6 @@ class MainWindow(QMainWindow):
         self.pitch_combo.setCurrentIndex(index)
         self.pitch_map_check.setChecked(request.map_teacher_pitch)
 
-    # ── Browsing and dropping ─────────────────────────────────────
     def _browse_teacher(self) -> None:
         self._choose_file(self.teacher_edit, T.LABEL_TEACHER)
 
@@ -384,7 +370,6 @@ class MainWindow(QMainWindow):
             self._set_audio_path(target, chosen)
 
     def _set_audio_path(self, target: QLineEdit, path: str) -> None:
-        """Fill an audio field, and propose an output directory for a new student."""
         target.setText(path)
         if target is self.student_edit:
             current = self.output_edit.text().strip()
@@ -420,7 +405,6 @@ class MainWindow(QMainWindow):
                 self._set_audio_path(self.teacher_edit, str(path))
         event.acceptProposedAction()
 
-    # ── Running a job ─────────────────────────────────────────────
     @Slot()
     def start_job(self) -> None:
         request = self._collect()
@@ -498,9 +482,7 @@ class MainWindow(QMainWindow):
         self._save_prefs()
         event.accept()
 
-    # ── Results ───────────────────────────────────────────────────
     def refresh_results(self) -> None:
-        """Reload every displayed value from the artifacts on disk."""
         artifacts = JobArtifacts(Path(self.output_edit.text().strip() or ROOT / "outputs"))
         job = artifacts.job()
         headline, note = artifacts.summary()
@@ -521,9 +503,6 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _summary_html(artifacts: JobArtifacts, job: dict, headline: str, note: str) -> str:
-        # The headline comes from JobArtifacts.summary(), which already
-        # distinguishes "nothing here" from "artifacts but no manifest"; this
-        # only adds the corrected-vocal line and the standing caveat.
         corrected = artifacts.corrected_path()
         line = (f"<br>{T.SUMMARY_CORRECTED_PREFIX}<code>{corrected.name}</code>"
                 if corrected is not None else "")
@@ -531,7 +510,6 @@ class MainWindow(QMainWindow):
                 f"<span style='color:#666'>{T.SUMMARY_DISCLAIMER}</span>")
 
     def _reload_audio(self, artifacts: JobArtifacts) -> None:
-        """Rebuild the playback list, keeping the listener's place when possible."""
         previous = self.audio_combo.currentData()
         available = artifacts.available_audio()
         self.audio_combo.blockSignals(True)
@@ -586,7 +564,6 @@ class MainWindow(QMainWindow):
         if path.is_dir():
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
 
-    # ── Preferences ───────────────────────────────────────────────
     def _load_prefs(self) -> None:
         try:
             values = json.loads(PREFS_PATH.read_text(encoding="utf-8"))

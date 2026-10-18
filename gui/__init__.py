@@ -1,7 +1,3 @@
-"""Desktop interface for CopyVocal.
+"""Desktop interface for CopyVocal: presentation only.
 
-This package owns presentation only. It drives the same command-line entry
-point documented in the README through a child process, so a window can never
-change pipeline behaviour and every run stays reproducible from its printed
-command line.
-"""
+It runs the documented command-line entry point in a child process."""

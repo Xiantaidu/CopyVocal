@@ -1,5 +1,3 @@
-"""Audit physical resources and the isolated portable runtime without loading models."""
-
 from __future__ import annotations
 
 import argparse
@@ -155,7 +153,7 @@ def source_path_audit():
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description="Audit physical resources and the isolated portable runtime without loading models.")
     parser.add_argument("--output", type=Path, default=ROOT / "settings/local_resource_audit.json")
     parser.add_argument("--workers", type=int, default=4)
     args = parser.parse_args()

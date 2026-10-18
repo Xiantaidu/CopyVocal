@@ -1,10 +1,3 @@
-"""Check how the window behaves when a job fails.
-
-A failing job must surface the error, re-enable Run, and leave unfinished stages
-unfinished rather than showing them as complete. Run with:
-
-    .\\python\\python.exe -X utf8 scripts\\gui_failure_probe.py
-"""
 from __future__ import annotations
 
 import os
@@ -24,11 +17,9 @@ from gui.window import MainWindow
 def main() -> int:
     application = QApplication([])
     window = MainWindow()
-    # The interface validates its inputs before starting, so drive the failure
-    # through a path it accepts but the pipeline cannot use: a real, empty output
-    # directory named on the command line as a source file. The interfaces cannot
-    # know this is wrong -- the analysis stage discovers it -- so the job really is
-    # started and really does fail.
+    # The interface validates its inputs, so drive the failure through a path it
+    # accepts but the pipeline cannot use: an empty output directory and a real
+    # source file that is not decodable audio. The analysis stage discovers it.
     output = ROOT / "outputs" / "failure_probe"
     output.mkdir(parents=True, exist_ok=True)
     for name in ("teacher.analysis.json", "student.analysis.json"):

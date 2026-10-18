@@ -1,22 +1,7 @@
-"""Chinese interface text for the desktop front end.
-
-All user-visible wording lives here as data, so the interface code stays in
-English like the rest of the project and every string can be reviewed in one
-place. Keys are English identifiers; values are the Simplified Chinese shown to
-the user.
-
-Pipeline artifacts (analysis, alignment, verification JSON) are written in
-English by the workers. ``warning_text`` translates the sentences the interface
-displays from those files, and deliberately returns anything unrecognized
-unchanged: a warning the interface has not been taught about is exactly the one a
-user must still be able to read.
-"""
-
 from __future__ import annotations
 
 import re
 
-# ── Window chrome ─────────────────────────────────────────────────
 WINDOW_TITLE = "CopyVocal 人声校正"
 GROUP_RECORDINGS = "录音文件"
 GROUP_OPTIONS = "选项"
@@ -42,7 +27,6 @@ LABEL_LISTENING = "试听"
 TOOLTIP_ONNX = "DirectML 使用 GPU 运行歌词模型；CPU 更慢但总能工作。"
 TOOLTIP_VOCODER = "auto 在有 CUDA 时使用 GPU，否则使用 CPU。"
 
-# ── Option checkboxes ─────────────────────────────────────────────
 CHECK_GAME = "提取音符（可选 MIDI 分析）"
 CHECK_EXPERIMENTS = "输出 A/B 对照（identity / 仅音高 / 仅节奏）"
 CHECK_VERIFY = "校验导出波形"
@@ -77,7 +61,6 @@ TOOLTIP_CHECK_PITCH_MAP = ("勾选后使用教师的连续音高曲线，滑音�
                            "「拉到教师音高」：不勾=学生曲线落到教师音区，勾=教师曲线与教师音区。\n"
                            "「适应模式」：不勾=学生曲线逐词对到教师音级，勾=整条教师曲线平移到学生音区。")
 
-# ── Advanced group ────────────────────────────────────────────────
 ADVANCED_MAX_CHUNK = "单块最大长度"
 ADVANCED_CONTEXT = "分块上下文长度"
 ADVANCED_QUALITY = "最低对应质量"
@@ -89,7 +72,6 @@ TOOLTIP_QUALITY = "低于该置信度的对应关系不参与正常合成。"
 TOOLTIP_STRETCH = "整词时长比值超过该倍数（或低于其倒数）时判定为不可支持。"
 TOOLTIP_FLOOR = "声码器做自然对数梅尔变换前的正幅度下限。"
 
-# ── Tabs, tables, results panel ───────────────────────────────────
 TAB_LOG = "日志"
 TAB_RESULTS = "结果"
 TABLE_METRICS = "指标"
@@ -108,7 +90,6 @@ SUMMARY_NO_JOB_NOTE = "先运行一个任务，或把输出目录指向已有结
 SUMMARY_CORRECTED_PREFIX = "校正后的人声："
 SUMMARY_DISCLAIMER = "计划覆盖范围与实测波形质量是两件事，二者都不代表通过了听感验收。"
 
-# ── Status banner ─────────────────────────────────────────────────
 STATUS_COMPLETED = ("已完成", "所有计划区段都由有支持的对应关系合成。")
 STATUS_UNRESOLVED = ("已完成，但存在未解决区段",
                      "部分内容被静音、模糊或未匹配。信任结果前请先检查对应关系与警告。")
@@ -133,7 +114,6 @@ RUN_STATUS_HEADLINES = {
     "cancelled": "已取消",
 }
 
-# ── Metric row labels ─────────────────────────────────────────────
 ROW_LYRIC_UNITS = "歌词单元"
 ROW_LYRIC_UNITS_VALUE = "教师 {teacher} · 学生 {student}"
 ROW_UNIT_STATUS = "单元状态"
@@ -181,7 +161,6 @@ VALUE_SECONDS = "{value:.3f} 秒"
 WARNING_LIMIT_PREFIX = "测量限制："
 WARNING_STRUCTURAL_FAILURE = "导出波形未通过结构校验。"
 
-# ── Pitch policies, region statuses and modes ─────────────────────
 PITCH_POLICY_LABELS = {
     "none": "不改变音高（学生原样）",
     "student_contour_student_register": "学生曲线 · 逐词对到教师音级 · 学生音区（适应模式）",
@@ -230,7 +209,6 @@ REGION_REASON_LABELS = {
     "no_corresponding_student_lyric_unit": "没有对应的学生歌词单元",
 }
 
-# ── Audio clip labels ─────────────────────────────────────────────
 AUDIO_TEACHER = "教师参考"
 AUDIO_STUDENT = "学生原始"
 AUDIO_CORRECTED = "校正后学生"
@@ -238,7 +216,6 @@ AUDIO_IDENTITY = "identity 重建"
 AUDIO_PITCH_ONLY = "仅改音高"
 AUDIO_TIME_ONLY = "仅改节奏"
 
-# ── Stages and progress ───────────────────────────────────────────
 STAGE_LABELS = (
     ("analysis", "分析：歌词、音素、音高与音符"),
     ("alignment", "对应：匹配歌词单元并建立时间映射"),
@@ -259,7 +236,6 @@ DETAIL_FINISHED = "已结束：{status}，耗时 {seconds:.1f} 秒。"
 DETAIL_CANCELLED = "已取消。已完成的分析缓存仍可复用。"
 DETAIL_CANCELLING = "正在取消，等待各工作进程停止。"
 
-# ── Status bar and dialogs ────────────────────────────────────────
 STATUSBAR_READY = "就绪。"
 STATUSBAR_RUNNING = "运行中。"
 STATUSBAR_JOB = "任务{status}。"
@@ -276,7 +252,6 @@ DIALOG_FAILED_FALLBACK = "管线在合成之前就中止了。"
 DIALOG_FAILED_BODY = ("{error}\n\n日志页与输出目录中的 processing.log 记录了管线的输出。")
 BULLET_ITEM = "• {item}"
 
-# ── Job validation messages ───────────────────────────────────────
 VALIDATE_CHOOSE_RECORDING = "请选择{label}录音。"
 VALIDATE_FILE_NOT_FOUND = "{label}文件不存在：{path}"
 VALIDATE_SAME_FILE = "教师录音与学生录音不能是同一个文件。"
@@ -288,9 +263,6 @@ VALIDATE_RANGE = "{name}必须大于 {low} 且不超过 {high}。"
 LABEL_TEACHER_SHORT = "教师"
 LABEL_STUDENT_SHORT = "学生"
 
-# ── Pipeline sentence translations ────────────────────────────────
-# The workers write these in English; the interface shows them in Chinese. An
-# unmatched sentence is returned as-is, never dropped.
 EXACT_WARNINGS = {
     "Audio is near silence; lyric analysis was not attempted.":
         "音频接近静音，未进行歌词分析。",
@@ -440,8 +412,7 @@ EXACT_LIMITATIONS = {
         "图中略去了无声区间。",
 }
 
-# Sentences that carry values are matched by shape and rebuilt in Chinese. Each
-# pattern is anchored so it cannot swallow an unrelated sentence.
+# Each pattern is anchored so it cannot swallow an unrelated sentence.
 TEMPLATE_WARNINGS: tuple[tuple[re.Pattern, str, tuple[str, ...]], ...] = (
     (re.compile(r"^Possible lyric mismatch or ASR error: (.+) versus (.+)\.$"),
      "歌词可能不一致或识别有误：教师{0} / 学生{1}。", ("teacher", "student")),
@@ -487,10 +458,7 @@ TEMPLATE_WARNINGS: tuple[tuple[re.Pattern, str, tuple[str, ...]], ...] = (
 def _strip_quotes(value: str) -> str:
     """Drop the repr quotes the workers put around a word, then use Chinese ones.
 
-    The pipeline writes the word with repr(), so the English sentence already
-    carries ASCII quotes. Re-quoting that verbatim produced doubled marks, so the
-    outer pair is removed and re-applied as full-width quotes.
-    """
+    Re-quoting the repr verbatim would double the marks."""
     text = str(value).strip()
     if len(text) >= 2 and text[0] == text[-1] and text[0] in {"'", '"'}:
         text = text[1:-1]
@@ -500,9 +468,7 @@ def _strip_quotes(value: str) -> str:
 def warning_text(sentence: str) -> str:
     """Translate one pipeline sentence, or return it unchanged.
 
-    Unrecognized text stays in English on purpose: a warning the interface has not
-    been taught about is exactly the one a user must still be able to read.
-    """
+    Unrecognized text stays in English on purpose."""
     text = str(sentence)
     if text in EXACT_WARNINGS:
         return EXACT_WARNINGS[text]

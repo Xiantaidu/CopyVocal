@@ -1,10 +1,3 @@
-"""Check that cancelling stops a running job and its workers.
-
-Cancellation is the one control the interface implements itself, so it needs a
-real child process to be meaningful. Run with:
-
-    .\\python\\python.exe -X utf8 scripts\\gui_cancel_probe.py
-"""
 from __future__ import annotations
 
 import os
@@ -24,7 +17,6 @@ from gui.window import MainWindow
 
 
 def python_processes() -> int:
-    """Count interpreter processes, to confirm workers did not survive."""
     completed = subprocess.run(["tasklist", "/FI", "IMAGENAME eq python.exe", "/NH"],
                                capture_output=True, text=True)
     return completed.stdout.lower().count("python.exe")

@@ -1,5 +1,3 @@
-"""Energy constraints protect real rests without treating UV noise as silence."""
-
 import unittest
 
 import numpy as np

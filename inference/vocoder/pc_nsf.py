@@ -1,5 +1,3 @@
-"""Strict PC-NSF-HiFiGAN loading and its audio feature contract."""
-
 from __future__ import annotations
 
 import json
@@ -14,10 +12,7 @@ import numpy as np
 class PcNsfVocoder:
     """A 44.1 kHz, 128-bin, natural-log mel PC-NSF-HiFiGAN adapter.
 
-    Audio is mono float32 at ``sample_rate``. Mel arrays use [128, frames]
-    and their frame centers are (index + 0.5) * hop_size / sample_rate.
-    Extraction pads the last partial hop to preserve exact output lengths.
-    """
+    Audio is mono float32; mel arrays are [128, frames] with frame centers (index + 0.5) * hop / rate."""
 
     def __init__(self, model_dir: str | Path, device: str = "cuda", log_floor: float = 1e-5):
         import torch
@@ -63,11 +58,7 @@ class PcNsfVocoder:
     def mel(self, audio: np.ndarray) -> np.ndarray:
         """Extract Slaney-normalized mel amplitudes followed by natural log.
 
-        This contract follows openvpi/SingingVocoders/utils/wav2mel.py:
-        reflect padding of 768 samples, periodic Hann window, center=False,
-        unnormalized STFT magnitude, and librosa's default Slaney mel bank.
-        CPU extraction keeps long recordings out of GPU memory.
-        """
+        Follows openvpi/SingingVocoders wav2mel.py: reflect pad, Hann, center=False."""
         import torch
         from librosa.filters import mel as mel_filter
 
@@ -77,8 +68,8 @@ class PcNsfVocoder:
         frame_count = math.ceil(len(audio) / self.hop_size)
         pad = (self.win_size - self.hop_size) // 2
         tail = frame_count * self.hop_size - len(audio)
-        # Extend only the final reflection, so every complete training-contract
-        # frame stays identical even when the last audio hop is incomplete.
+        # Extend only the final reflection so complete training-contract frames
+        # stay identical even when the last audio hop is incomplete.
         padded = np.pad(audio, (pad, pad + tail), mode="reflect" if len(audio) > 1 else "edge")
         waveform = torch.from_numpy(padded).unsqueeze(0)
         if self._mel_basis is None:
@@ -87,7 +78,7 @@ class PcNsfVocoder:
                 fmin=self.fmin, fmax=self.fmax, htk=False, norm="slaney",
             )).float()
             self._window = torch.hann_window(self.win_size)
-        # Bound peak STFT storage even for hour-long inputs. Each block shares
+        # Bound peak STFT storage even for hour-long inputs; each block shares
         # the already reflected waveform and therefore has identical edges.
         blocks = []
         with torch.inference_mode():
@@ -103,7 +94,6 @@ class PcNsfVocoder:
         return np.concatenate(blocks, axis=1).astype(np.float32, copy=False)
 
     def _phase_prefix(self, f0: np.ndarray) -> np.ndarray:
-        """Integrate the mini-NSF source in float64 for coherent chunk phases."""
         if not self.model.mini_nsf:
             return np.zeros(len(f0) + 1, dtype=np.float64)
         delta = np.diff(f0.astype(np.float64), append=float(f0[-1]))
@@ -115,7 +105,6 @@ class PcNsfVocoder:
         self, mel: np.ndarray, f0_hz: np.ndarray, sample_count: int | None = None,
         *, chunk_frames: int = 768, context_frames: int = 32, overlap_frames: int = 16,
     ) -> np.ndarray:
-        """Synthesize with bounded memory, context, coherent phase and crossfades."""
         import torch
 
         mel = np.asarray(mel, dtype=np.float32)

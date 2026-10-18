@@ -1,4 +1,3 @@
-"""CPU tests for measured timing, lexical exclusions, and model input isolation."""
 from __future__ import annotations
 
 import copy

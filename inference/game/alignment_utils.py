@@ -11,13 +11,6 @@ def validate_phones(
         ph_dur: list[float],
         ph_num: list[int],
 ) -> tuple[bool, str | None]:
-    """
-    Validate the phoneme sequence, durations, and word spans.
-    :param ph_seq: list of phoneme symbols
-    :param ph_dur: list of phoneme durations
-    :param ph_num: list of word spans (number of phonemes in each word)
-    :return: is_valid, error_message
-    """
     if len(ph_seq) != len(ph_dur):
         return False, f"Length mismatch: {len(ph_seq)} phonemes vs {len(ph_dur)} durations."
     if sum(ph_num) != len(ph_seq):
@@ -33,16 +26,7 @@ def parse_words(
         uv_cond: Literal["lead", "all"] = "all",
         merge_consecutive_uv: bool = False,
 ) -> tuple[list[float], list[int]]:
-    """
-    Convert phoneme sequence to word durations and v/uv flags.
-    :param ph_seq: list of phoneme symbols
-    :param ph_dur: list of phoneme durations
-    :param ph_num: list of word spans (number of phonemes in each word)
-    :param uv_vocab: set of unvoiced phonemes
-    :param uv_cond: condition for determining unvoiced words ("lead" for leading phonemes, "all" for all phonemes)
-    :param merge_consecutive_uv: whether to merge consecutive unvoiced words into one
-    :return: word_dur, word_vuv (1 for voiced, 0 for unvoiced)
-    """
+    """Convert phoneme sequence to word durations and v/uv flags (1 voiced, 0 unvoiced)."""
     word_dur = []
     word_vuv = []
     idx = 0
@@ -70,12 +54,6 @@ def merge_consecutive_uv_words(
         word_dur: list[float],
         word_vuv: list[int],
 ) -> tuple[list[float], list[int]]:
-    """
-    Merge consecutive unvoiced words into one.
-    :param word_dur: list of word durations
-    :param word_vuv: list of word v/uv flags (1 for voiced, 0 for unvoiced)
-    :return: merged_word_dur, merged_word_vuv
-    """
     if not word_dur:
         return [], []
     merged_dur = [word_dur[0]]
@@ -98,18 +76,9 @@ def align_notes_to_words(
         apply_word_uv: bool = False,
         assign_by_onset: bool = False
 ) -> tuple[list[str], list[float], list[int]]:
-    """
-    Align note sequence to word durations.
-    :param word_dur: list of word durations
-    :param word_vuv: list of word v/uv flags (1 for voiced, 0 for unvoiced)
-    :param note_seq: list of note names (e.g. "C4", "D#4", "rest")
-    :param note_dur: list of note durations
-    :param tol: tolerance for alignment (in seconds)
-    :param apply_word_uv: whether to set note pitch to "rest" for unvoiced words
-    :param assign_by_onset: assign a note wholly to the word containing its
-        onset instead of splitting notes that straddle a word boundary
-    :return: new_note_seq, new_note_dur, note_slur (1 for slur, 0 for non-slur)
-    """
+    """Align note sequence to word durations.
+
+    Returns (new_note_seq, new_note_dur, note_slur), note_slur 1 for slur else 0."""
     if not word_dur or not note_dur or not note_seq:
         return [], [], []
 
@@ -147,10 +116,8 @@ def align_notes_to_words(
 
     if assign_by_onset:
         # Onset assignment: every note belongs wholly to the word containing
-        # its onset. Words without an onset are either covered by an earlier
-        # long note (emit a ZERO-length placeholder so lyric slots stay
-        # aligned without adding phantom time) or are true gaps (emit a rest
-        # spanning the word).
+        # its onset. Words without an onset emit a ZERO-length placeholder so
+        # lyric slots stay aligned, or a rest when they are true gaps.
         for word_idx in range(len(word_dur)):
             start = float(word_start[word_idx])
             end = float(word_end[word_idx])
@@ -169,8 +136,8 @@ def align_notes_to_words(
             covered = scan_idx > 0 and float(note_end[scan_idx - 1]) > start + _ALIGN_MIN_GAP
 
             if apply_word_uv and word_vuv[word_idx] == 0:
-                # Unvoiced span: emit a rest, zero-length when a long note
-                # from an earlier word already owns this time.
+                # Unvoiced span: zero-length rest when an earlier long note
+                # already owns this time.
                 new_note_seq.append("rest")
                 new_note_dur.append(0.0 if covered else end - start)
                 note_slur.append(0)

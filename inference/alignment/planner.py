@@ -1,10 +1,3 @@
-"""Build auditable lyric correspondence without using pitch as an identity cue.
-
-The teacher is the output clock. Every synthesizable region has its own source
-anchors: a single global continuous warp cannot represent a deleted source word
-or missing student material. Consumers must honor each region's mode.
-"""
-
 from __future__ import annotations
 
 from collections import Counter
@@ -76,7 +69,6 @@ def _pinyin(text: str) -> str:
 
 
 def _analysis_language(analysis: dict) -> str:
-    """Respect the recorded language before falling back to kana evidence."""
     config = analysis.get("config") or {}
     value = _normalize(analysis.get("language") or config.get("language"))
     if value in {"ja", "jpn", "japanese"}:
@@ -93,9 +85,7 @@ def _analysis_language(analysis: dict) -> str:
 def _japanese_signature(text: str, phone_input: bool = False) -> str:
     """Canonicalize a known Japanese reading without inventing kanji readings.
 
-    Moraic N and closure remain distinct from an onset n and other consonants.
-    The shared TiFA tables also retain contracted kana and long-vowel marks.
-    """
+    Moraic N and closure stay distinct from an onset n."""
     from inference.HubertFA.tools.g2p import JapanesePhonemeMoraG2P
     from inference.TiFA.g2p.converters.japanese import _KANA_TO_ROMAJI, _kata_to_hira
     from inference.TiFA.g2p.converters.text import split_words
@@ -171,7 +161,6 @@ def _clean_phones(word: dict, start: float, end: float) -> list[dict]:
 
 
 def _units(analysis: dict, duration: float) -> tuple[list[dict], list[str]]:
-    """Normalize tokenization, retaining original indices for the audit trail."""
     result, warnings = [], []
     previous_start = 0.0
     analysis_language = _analysis_language(analysis)
@@ -183,8 +172,8 @@ def _units(analysis: dict, duration: float) -> tuple[list[dict], list[str]]:
         language = _normalize(word.get("language") or analysis_language)
         japanese = language in {"ja", "jpn", "japanese"}
         tokenizer = _JAPANESE_TOKENS if japanese else _TOKENS
-        # Japanese word/mora boundaries already come from TiFA. Splitting a
-        # kanji surface into Chinese characters would discard that alignment.
+        # Japanese word/mora boundaries come from TiFA; splitting kanji into
+        # characters would discard that alignment.
         tokens = tokenizer.findall(_normalize(word.get("text", "")))
         if not tokens or end <= start:
             continue
@@ -195,8 +184,8 @@ def _units(analysis: dict, duration: float) -> tuple[list[dict], list[str]]:
         phones = _clean_phones(word, float(start), float(end))
         estimated = len(tokens) > 1
         for position, token in enumerate(tokens):
-            # A multi-character ASR word lacks internal boundaries. Equal spans
-            # are an explicit estimate, never a claimed forced alignment.
+            # A multi-character ASR word lacks internal boundaries; equal spans
+            # are an estimate, not a forced alignment.
             a = float(start + (end - start) * position / len(tokens))
             b = float(start + (end - start) * (position + 1) / len(tokens))
             local_phones = phones if not estimated else []
@@ -246,7 +235,6 @@ def _relation(teacher: dict, student: dict) -> str:
 
 def _correspond(teacher: list[dict], student: list[dict], teacher_duration: float,
                 student_duration: float) -> tuple[list[tuple[int | None, int | None]], dict]:
-    """Align edits and identify lexical ties that progress alone cannot resolve."""
     n, m = len(teacher), len(student)
     scores = np.empty((n + 1, m + 1), dtype=np.float64)
     lexical_scores = np.empty_like(scores)
@@ -291,8 +279,8 @@ def _correspond(teacher: list[dict], student: list[dict], teacher_duration: floa
     pairs.reverse()
     if not n or not m:
         return pairs, {}
-    # The progress prior selects a deterministic path, but is not independent
-    # evidence of which identical chorus was omitted. Forward/backward lexical
+    # The progress prior picks a deterministic path but is not independent
+    # evidence of which identical chorus was omitted; forward/backward lexical
     # costs reveal equally plausible identities on either side of that path.
     backwards = np.empty_like(lexical_scores)
     backwards[:, m] = np.arange(n, -1, -1)
@@ -349,16 +337,16 @@ def _local_anchors(teacher: dict, student: dict) -> tuple[list[float], list[floa
         return [ts, te], [ss, se], "word_linear"
     target_length = te - ts
     source_consonants = float(source_lengths[~vowels].sum())
-    # Compression can force consonants shorter. Reserve at least 35% of the
-    # target syllable for voiced nuclei, avoiding collapsed/negative durations.
+    # Compression can force consonants shorter; reserve at least 35% of the
+    # target syllable for voiced nuclei to avoid collapsed durations.
     consonant_scale = min(1.0, 0.65 * target_length / max(source_consonants, 1e-9))
     target_lengths = source_lengths * consonant_scale
     remaining = target_length - float(target_lengths[~vowels].sum())
     vowel_weights = source_lengths[vowels].copy()
     teacher_vowels = [p for p in teacher["phonemes"] if _is_vowel(p["text"])]
     source_vowels = [p for p in phones if _is_vowel(p["text"])]
-    # Matched vowel identities allow the teacher to supply relative rhythm,
-    # including a syllable containing several nuclei. Pitch notes are irrelevant.
+    # Matched vowel identities let the teacher supply relative rhythm, including
+    # syllables with several nuclei.
     if (len(teacher_vowels) == len(source_vowels)
             and [_phone(p["text"]) for p in teacher_vowels]
             == [_phone(p["text"]) for p in source_vowels]):
@@ -405,10 +393,7 @@ def _voice_extent(analysis: dict, duration: float) -> tuple[float, float] | None
 def _voice_in_interval(analysis: dict, start: float, end: float) -> tuple[float, float] | None:
     """Return the bounding extent of voiced frames in an interval.
 
-    This helper is retained for whole-interval activity checks. Gap planning
-    uses ``_voice_runs`` below so sparse frames cannot turn a long silence into
-    one continuous missing-vocal region.
-    """
+    Kept for whole-interval checks; gap planning uses ``_voice_runs`` instead."""
     runs = _voice_runs(analysis, start, end)
     if not runs:
         return None
@@ -416,7 +401,6 @@ def _voice_in_interval(analysis: dict, start: float, end: float) -> tuple[float,
 
 
 def _voice_runs(analysis: dict, start: float, end: float) -> list[tuple[float, float]]:
-    """Return contiguous voiced runs, keeping unvoiced intervals explicit."""
     pitch = analysis.get("pitch") or {}
     times = np.asarray(pitch.get("times", []), dtype=float)
     voiced = np.asarray(pitch.get("voiced", []), dtype=bool)
@@ -429,7 +413,6 @@ def _voice_runs(analysis: dict, start: float, end: float) -> list[tuple[float, f
     step = float(np.median(np.diff(times))) if times.size > 1 else 0.01
     step = max(1e-4, step)
     # A missing voiced frame separates runs; UV alone is not acoustic silence.
-    # The tolerance accommodates floating-point pitch timestamps.
     split = np.flatnonzero(np.diff(active) > step * 1.5)
     starts = np.r_[0, split + 1]
     stops = np.r_[split, active.size - 1]
@@ -441,7 +424,7 @@ def _gap_regions(teacher: dict, student: dict, ts: float, te: float, ss: float,
                  se: float, allow_fallback: bool, max_stretch: float) -> list[dict]:
     """Classify pitch-only gaps without asserting acoustic silence."""
     def unvoiced_region(start: float, end: float, source_cursor: float) -> dict:
-        # Keep legacy rendering modes and anchors unchanged. The score describes
+        # Legacy rendering modes and anchors are unchanged; the score describes
         # pitch-gap structure, not acoustic silence or semantic confidence.
         return _region(start, end, source_cursor, source_cursor,
                        "unvoiced_gap", "silence", 1.0,
@@ -458,8 +441,8 @@ def _gap_regions(teacher: dict, student: dict, ts: float, te: float, ss: float,
     if allow_fallback and len(student_runs) == len(teacher_runs):
         candidates = list(zip(teacher_runs, student_runs))
         # A single run on each side supplies an activity extent, not semantic
-        # evidence. Multiple runs additionally need compatible relative timing;
-        # otherwise an omitted sound could shift every subsequent pairing.
+        # evidence; multiple runs need compatible relative timing or an omitted
+        # sound could shift every subsequent pairing.
         def compatible(pair: tuple[tuple[float, float], tuple[float, float]]) -> bool:
             (a, b), (c, d) = pair
             if d <= c or not (1 / max_stretch) <= (b - a) / (d - c) <= max_stretch:
@@ -505,8 +488,8 @@ def _global_map(regions: list[dict], teacher_duration: float, student_duration: 
         target, source = float(target), float(source)
         if teacher_times and target == teacher_times[-1]:
             if source > student_times[-1] and len(teacher_times) > 1:
-                # A source insertion is a jump. Move its left limit by one ULP
-                # so the sparse map remains monotonic without a broad smear.
+                # A source insertion is a jump; move its left limit by one ULP
+                # so the sparse map stays monotonic without a broad smear.
                 left_limit = float(np.nextafter(target, -math.inf))
                 if left_limit > teacher_times[-2]:
                     teacher_times[-1] = left_limit
@@ -525,10 +508,7 @@ def build_alignment(teacher: dict, student: dict, *, min_quality: float = 0.35,
                     max_stretch: float = 4.0, allow_acoustic_fallback: bool = False) -> dict:
     """Plan teacher-clock editing and report unsupported material explicitly.
 
-    A substitution is a suspected transcription/lyric mismatch, not evidence
-    that the singer said a wrong word. Missing words cannot be synthesized from
-    unrelated source content and are therefore muted. All times are seconds.
-    """
+    Substitutions are suspected lyric/ASR mismatches; missing words are muted."""
     if not 0 <= min_quality <= 1 or not math.isfinite(max_stretch) or max_stretch < 1:
         raise ValueError("min_quality must be in [0, 1] and max_stretch must be at least 1.")
     td, sd = _duration(teacher), _duration(student)
@@ -682,9 +662,7 @@ def build_alignment(teacher: dict, student: dict, *, min_quality: float = 0.35,
 def map_times(plan: dict, times: Any) -> np.ndarray:
     """Map teacher seconds to source seconds; region masks remain mandatory.
 
-    Empty plans map to zero. Unsupported and silence regions receive a bounded
-    monotonic map for diagnostics only; consumers must not synthesize them.
-    """
+    Unsupported regions get a bounded map for diagnostics only, never synthesis."""
     values = np.asarray(times, dtype=np.float64)
     mapping = plan.get("time_map") or {}
     target = np.asarray(mapping.get("teacher_times", []), dtype=float)

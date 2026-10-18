@@ -1,4 +1,3 @@
-"""Make physical, verified copies of the upstream runtime and model bundles."""
 from __future__ import annotations
 
 import argparse
@@ -45,7 +44,7 @@ def verify_file(path: Path) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description="Make physical, verified copies of the upstream runtime and model bundles.")
     parser.add_argument("--upstream", type=Path, default=Path("D:/Vocal2Midi"))
     parser.add_argument("--vocoder", type=Path,
                         default=Path("Z:/pc_nsf_hifigan_44.1k_hop512_128bin_2025.02"))
