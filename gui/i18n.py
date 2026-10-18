@@ -12,11 +12,16 @@ _STRINGS: dict[str, dict[str, str]] = {
 
     "card_recordings": {"zh": "录音文件", "en": "Recordings"},
     "card_options": {"zh": "选项", "en": "Options"},
-    "card_advanced": {"zh": "高级", "en": "Advanced"},
-    "card_progress": {"zh": "进度", "en": "Progress"},
+    "card_progress": {"zh": "运行", "en": "Run"},
     "card_results": {"zh": "结果", "en": "Results"},
     "card_appearance": {"zh": "外观", "en": "Appearance"},
     "card_about": {"zh": "关于", "en": "About"},
+    "expander_run_modes": {"zh": "更多运行方式", "en": "More run modes"},
+    "expander_advanced": {"zh": "分析参数（通常无需修改）", "en": "Analysis parameters (usually unchanged)"},
+    "expander_command": {"zh": "等价的命令行", "en": "Equivalent command line"},
+    "expander_log": {"zh": "运行日志", "en": "Run log"},
+    "switch_on": {"zh": "开", "en": "On"},
+    "switch_off": {"zh": "关", "en": "Off"},
 
     "label_teacher": {"zh": "教师录音（目标）", "en": "Teacher recording (target)"},
     "label_student": {"zh": "学生录音（待校正）", "en": "Student recording (to correct)"},

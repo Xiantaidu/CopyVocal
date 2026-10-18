@@ -36,7 +36,16 @@ def main() -> int:
         window._update_stage(stage, state)
     window._update_progress(72)
     window.detail_label.setText("正在渲染：full")
+    window.stage_list.setVisible(True)
     save(window, application, "gui_screenshot.png")
+
+    for expander in (window.correction.run_expander, window.correction.advanced_expander,
+                     window.correction.command_expander, window.correction.log_expander):
+        expander.expand()
+    save(window, application, "gui_screenshot_expanded.png")
+    for expander in (window.correction.run_expander, window.correction.advanced_expander,
+                     window.correction.command_expander, window.correction.log_expander):
+        expander.collapse()
 
     window.navigationInterface.setCurrentItem(window.results.objectName())
     for index, name in ((0, "gui_screenshot_results.png"),

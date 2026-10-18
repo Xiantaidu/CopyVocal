@@ -716,5 +716,45 @@ class NavigationTests(unittest.TestCase):
         self.assertEqual(self.window.run_button.text(), "开始")
 
 
+class ProgressiveDisclosureTests(unittest.TestCase):
+    """Secondary controls stay folded until a job needs them."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.application = QApplication.instance() or QApplication([])
+
+    def setUp(self):
+        from gui.window import MainWindow
+        self.window = MainWindow()
+        self.addCleanup(self.window.deleteLater)
+
+    def test_secondary_sections_start_collapsed(self):
+        for name in ("run_expander", "advanced_expander", "command_expander", "log_expander"):
+            self.assertFalse(getattr(self.window.correction, name).isExpanded(), name)
+
+    def test_switches_show_on_off_rather_than_their_caption(self):
+        switch = self.window.game_check
+        self.assertEqual((switch.getOnText(), switch.getOffText()),
+                         (tr("switch_on"), tr("switch_off")))
+        # The caption beside the switch carries the meaning, never the state text.
+        self.assertNotIn(tr("check_game"), (switch.getOnText(), switch.getOffText()))
+
+    def test_stage_list_appears_only_once_a_job_starts(self):
+        self.assertFalse(self.window.stage_list.isVisible())
+        self.assertEqual(self.window.stage_list.count(), 6)
+
+    def test_expanding_a_section_reveals_its_controls(self):
+        expander = self.window.correction.advanced_expander
+        expander.expand()
+        self.assertTrue(expander.isExpanded())
+        self.assertTrue(self.window.chunk_spin.isVisibleTo(expander))
+        expander.collapse()
+        self.assertFalse(self.window.chunk_spin.isVisibleTo(expander))
+
+    def test_advanced_values_survive_being_folded(self):
+        self.window.chunk_spin.setValue(12.0)
+        self.assertEqual(self.window._collect().max_chunk_seconds, 12.0)
+
+
 if __name__ == "__main__":
     unittest.main()

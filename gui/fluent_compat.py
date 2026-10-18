@@ -55,6 +55,7 @@ __all__ = [
     "CardWidget",
     "ComboBox",
     "DoubleSpinBox",
+    "Expander",
     "FluentIcon",
     "FluentWindow",
     "IconWidget",
@@ -343,6 +344,106 @@ class CardWidget(QFrame):
             "border-radius: 5px;"
             "}"
         )
+
+
+class Expander(QWidget):
+    """Collapsible section: a header row with a chevron over hidden content."""
+
+    expandedChanged = Signal(bool)
+
+    def __init__(self, title: str = "", parent=None, expanded: bool = False):
+        super().__init__(parent)
+        self._expanded = bool(expanded)
+        self._title = title
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+
+        self._header = QPushButton(self)
+        self._header.setCheckable(True)
+        self._header.setChecked(self._expanded)
+        self._header.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._header.setFlat(True)
+        self._header.clicked.connect(self._on_header_clicked)
+        layout.addWidget(self._header)
+
+        self._body = QWidget(self)
+        self._body_layout = QVBoxLayout(self._body)
+        self._body_layout.setContentsMargins(0, 0, 0, 0)
+        self._body_layout.setSpacing(10)
+        layout.addWidget(self._body)
+        self._body.setVisible(self._expanded)
+        self._restyle()
+
+    def setContentLayout(self, layout):
+        """Move an existing layout's widgets into the collapsible body."""
+        # QLayout cannot be re-parented, so re-add its items to the body layout.
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                self._body_layout.addWidget(widget)
+            elif item.layout() is not None:
+                self._body_layout.addLayout(item.layout())
+        self._body_layout.addStretch(0)
+
+    def content_layout(self) -> QVBoxLayout:
+        return self._body_layout
+
+    def isExpanded(self) -> bool:
+        return self._expanded
+
+    def setExpanded(self, expanded: bool):
+        if bool(expanded) == self._expanded:
+            return
+        self._expanded = bool(expanded)
+        self._header.setChecked(self._expanded)
+        self._body.setVisible(self._expanded)
+        self._refresh_header()
+        self.expandedChanged.emit(self._expanded)
+
+    def setTitle(self, title: str):
+        self._title = title
+        self._refresh_header()
+
+    def expand(self):
+        self.setExpanded(True)
+
+    def collapse(self):
+        self.setExpanded(False)
+
+    def _on_header_clicked(self):
+        self._expanded = self._header.isChecked()
+        self._body.setVisible(self._expanded)
+        self._refresh_header()
+        self.expandedChanged.emit(self._expanded)
+
+    def _refresh_header(self):
+        chevron = str(_ICON_DIR / ("chevron_up_black.svg" if self._expanded
+                                   else "chevron_down_black.svg")).replace("\\", "/")
+        if _resolve_dark():
+            chevron = chevron.replace("_black.svg", "_white.svg")
+        t = _tokens()
+        self._header.setText(self._title)
+        self._header.setIcon(QIcon(chevron))
+        self._header.setStyleSheet(
+            "QPushButton {"
+            "text-align: left;"
+            "border: none;"
+            "background: transparent;"
+            f"color: {t['text']};"
+            "font-weight: bold;"
+            "padding: 2px 0px;"
+            "}"
+            "QPushButton:hover {"
+            f"color: {_ACCENT};"
+            "}"
+        )
+
+    def _restyle(self):
+        self._refresh_header()
+        t = _tokens()
+        self._body.setStyleSheet(f"QWidget {{ background: transparent; color: {t['text']}; }}")
 
 
 class ScrollArea(QScrollArea):
