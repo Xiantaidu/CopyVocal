@@ -1,0 +1,17 @@
+python/
+models/
+cache/
+outputs/
+*.wav
+*.pyc
+__pycache__/
+.pytest_cache/
+.zcode/
+settings/gui_prefs.json
+ffmpeg.exe
+*.log
+
+*.dll
+inference/qwen3asr_dml/bin/*.so
+inference/qwen3asr_dml/bin/*.dylib
+settings/local_resource_audit.json

@@ -1,0 +1,415 @@
+{
+  "version": 1,
+  "created_at": "2026-10-15T13:28:18Z",
+  "copy_method": "shutil.copy2 (physical files)",
+  "sources": {
+    "upstream": "D:\\Vocal2Midi",
+    "vocoder": "Z:\\pc_nsf_hifigan_44.1k_hop512_128bin_2025.02"
+  },
+  "files": [
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml-base.dll",
+      "bytes": 799744,
+      "sha256": "e15ffce4b3eb65dc8ff02cca4e4cea4b417af3e7c352ea89f8c5234d6355ba09"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml-cpu-alderlake.dll",
+      "bytes": 1137664,
+      "sha256": "2202873a906d2f85caf392bf4b4ed02a2a06d12216935f7d64a18d80febc1634"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml-cpu-cannonlake.dll",
+      "bytes": 1376768,
+      "sha256": "5d53a9daf821ee4598e47c1ce464afacb352f96841fa2f42f0e62b2740326af0"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml-cpu-cascadelake.dll",
+      "bytes": 1362432,
+      "sha256": "c2525f853bc592cd4db7f02e7bd9ab58977436fed77f2f1f6e7090cbf6c687d8"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml-cpu-cooperlake.dll",
+      "bytes": 1363456,
+      "sha256": "21cb4f10b75e36e1529415e0c39cf0d4998c294af33b935c7bc024df9543b388"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml-cpu-haswell.dll",
+      "bytes": 1142784,
+      "sha256": "d5e01c8ba02259ab83751b879350d8c977a89a72193fe5f474ec8fc112e0bb2a"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml-cpu-icelake.dll",
+      "bytes": 1370112,
+      "sha256": "16a32800ea06b7985bd59eb93f95938192bfde2338b4710542c6773bca529986"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml-cpu-ivybridge.dll",
+      "bytes": 1036800,
+      "sha256": "50ae5fd007fab58ea803aac66a76afb6c8736df0ddb605529e300f97923af893"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml-cpu-piledriver.dll",
+      "bytes": 1039360,
+      "sha256": "6241ed94f86cef587e525e938ac5446e0fb4cbb579a4c6d54f565e41ba337a9f"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml-cpu-sandybridge.dll",
+      "bytes": 1016832,
+      "sha256": "a9aa773cefe245ce10054b8c95388f9fa4bcf59f4ded28fab99ac837f03abc1e"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml-cpu-sapphirerapids.dll",
+      "bytes": 1638400,
+      "sha256": "ec8f94c79e449fffe670457c7f78ec4aee003a30acfb57a20c243235a4377ab4"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml-cpu-skylakex.dll",
+      "bytes": 1369600,
+      "sha256": "1b94c60c939e2d01ef6adec5544b39dc85e4c90f04a947dbe1eb72324a4799d5"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml-cpu-sse42.dll",
+      "bytes": 857088,
+      "sha256": "424740d05036d2dc2cb5b0956c154f54328888b594c99b45a7b2701fcc8651fa"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml-cpu-x64.dll",
+      "bytes": 848384,
+      "sha256": "089a7b89acc1d7e0c83a51561a582dc939bf0e8b86b35c4a4524d97a71903c36"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml-cpu-zen4.dll",
+      "bytes": 1370112,
+      "sha256": "b0c9815de80165ba875d4af3897abc3bb07b117cc5a453a56685bcbe101bb0bb"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml-rpc.dll",
+      "bytes": 149504,
+      "sha256": "96ae992d91e4a6474006990003efef9b4d75866f2be892800d3e3b26d8415903"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml-vulkan.dll",
+      "bytes": 58082816,
+      "sha256": "4e14a5f2285cfbbf049408ce0b9a08f2805d07ba43b1f2b15f5d67ce6bc32bb1"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/ggml.dll",
+      "bytes": 96768,
+      "sha256": "cc94a6d127627b2b6b563b068b37c350b48204071b8b12c5c2aba15063b3c4c4"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/libggml-base.0.dylib",
+      "bytes": 18,
+      "sha256": "0a15bc2568281014acb59c8b7e17275916a4d957dfc84bfb55a03d5091897a57"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/libggml-base.dylib",
+      "bytes": 761096,
+      "sha256": "76479521eae33905ed0d4a0e124a9d0f93b736cd2acb39cd6ed1e1698984068a"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/libggml-cpu.0.dylib",
+      "bytes": 17,
+      "sha256": "48776f6e6ef52feb7f42aa2f1a08d3888a46c112d5cebf40408f35626a80f1bf"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/libggml-cpu.dylib",
+      "bytes": 1658040,
+      "sha256": "c48df50314be03710cc15ac3a68182e378e52f118a9c54d676efb51e0c703c55"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/libggml-metal.0.dylib",
+      "bytes": 19,
+      "sha256": "8e360d9d829310614336a8adea5ebfeb27ca3c3eb7398a8a791ef7b342a41204"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/libggml-metal.dylib",
+      "bytes": 5495944,
+      "sha256": "8b18aa427b29343e7d9ecac47802bf54cc78f605c1e9c3d042f999968914c7db"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/libggml.0.dylib",
+      "bytes": 13,
+      "sha256": "5248124656c0a18ed9cbc66eb723242fe1d327f56deea03ffa67d1f42626ce3e"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/libggml.dylib",
+      "bytes": 43384,
+      "sha256": "2fa5d15c49e6cb12418deeb07f6d42058880eccbac795270cdc7c191ff39104f"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/libllama.0.dylib",
+      "bytes": 14,
+      "sha256": "e5c4eb334dbd75a70a670ba56e19fd0864ce44ab14a6d3c144365cc4a12077f9"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/libllama.dylib",
+      "bytes": 3697560,
+      "sha256": "8863af397cbd5fc42cacef67fb4023541dc36909d2d09a8c622e62f93daf8eb0"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/libomp140.x86_64.dll",
+      "bytes": 634936,
+      "sha256": "9ab1cb787e52b2a36133899c01c1db1f876067d1471cd224ead85f40a8152b99"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/llama-batched-bench-impl.dll",
+      "bytes": 69120,
+      "sha256": "6faa55412a4cff5dedad31928feeff797c6a0211f769c4bf33e097a00afa0dd1"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/llama-bench-impl.dll",
+      "bytes": 392704,
+      "sha256": "e8ed799c4892a4ce733402eb8b381e8519122f5d879cfdc03896399a00b7110c"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/llama-cli-impl.dll",
+      "bytes": 2633216,
+      "sha256": "daf96e947da3233937212882144494d754068055a970698cea5cac2bfcccb9c6"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/llama-common.dll",
+      "bytes": 8074752,
+      "sha256": "6672fb9b3e6ee9f3bf741fa47332b44ee57353923a643786a71cba24d47db7d5"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/llama-completion-impl.dll",
+      "bytes": 146432,
+      "sha256": "9209c21a682f67c51a150296710f19962c84b896f0d00850c7be65cd88a189c8"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/llama-fit-params-impl.dll",
+      "bytes": 46080,
+      "sha256": "90f7e91f6dcf93d4a306a0adf73f396fae038290ef6cbde5a57efd9942506d4a"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/llama-perplexity-impl.dll",
+      "bytes": 225792,
+      "sha256": "93abccca1d48d658c589ad23d1334fd3e9f80eb8c00ad7420280dc6adf8dabd4"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/llama-quantize-impl.dll",
+      "bytes": 163328,
+      "sha256": "4388b1850a397667d725ca3631263071e1841a4593b8f7fb52afae46b3423aaa"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/llama-server-impl.dll",
+      "bytes": 12365824,
+      "sha256": "b05ba10b7edb79ee02683d5713a0470397bd1a250ed6d7cb083cb128ed08a698"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/llama.dll",
+      "bytes": 2573824,
+      "sha256": "2ddc0d7eca228c66a980ddf4bab8797bdc200aca3199b62f253ef46b554c8a17"
+    },
+    {
+      "path": "inference/qwen3asr_dml/bin/mtmd.dll",
+      "bytes": 1302016,
+      "sha256": "5cb2a09182f108d3ff4674bf6ee63e037526d5a661d986a6d71c0708e063a7b4"
+    },
+    {
+      "path": "models/GAME-1.0.3-medium-onnx/bd2dur.onnx",
+      "bytes": 4569,
+      "sha256": "6672d56b00f27a20e9bfaa92801c15e394bb520e49031d3ed2515b0a6cf27402"
+    },
+    {
+      "path": "models/GAME-1.0.3-medium-onnx/config.json",
+      "bytes": 198,
+      "sha256": "4d62b6d058a820e981184ea6f04605d37659c4331ee01979eb14a14be08af890"
+    },
+    {
+      "path": "models/GAME-1.0.3-medium-onnx/dur2bd.onnx",
+      "bytes": 2632,
+      "sha256": "49d10d1ea186e43c51fd2c51cedb01a3852d363f1c7056ae77df50f7e8dd0996"
+    },
+    {
+      "path": "models/GAME-1.0.3-medium-onnx/encoder.onnx",
+      "bytes": 40809108,
+      "sha256": "fb00295abf8156806a3bf2477ccadc9dd6a8f464fa4ee1a65c85100ce17e36fe"
+    },
+    {
+      "path": "models/GAME-1.0.3-medium-onnx/estimator.onnx",
+      "bytes": 74457404,
+      "sha256": "2662a01e24548dc3b9f8ebc081b26947873c01eeaa573c9d0a87e7bf2a43642b"
+    },
+    {
+      "path": "models/GAME-1.0.3-medium-onnx/segmenter.onnx",
+      "bytes": 80703699,
+      "sha256": "49c20f890d02f8877be4b092fae3913ec969e9236cf0a91e661e8bf52465ffda"
+    },
+    {
+      "path": "models/Qwen3-ASR-1.7B-dml/qwen3_asr_encoder_backend.fp16.onnx",
+      "bytes": 611548981,
+      "sha256": "dce32f4d7f7679b5a9e7359d881a3d57763cd91dd1023a3dcbab15f64d59d325"
+    },
+    {
+      "path": "models/Qwen3-ASR-1.7B-dml/qwen3_asr_encoder_frontend.fp16.onnx",
+      "bytes": 27112576,
+      "sha256": "ac8deb4e34e6d0cc4b4aec164d8a848c1de3fc9e2b4dc8e81243ba8c18666ce3"
+    },
+    {
+      "path": "models/Qwen3-ASR-1.7B-dml/qwen3_asr_llm.f16.gguf",
+      "bytes": 4069674560,
+      "sha256": "0e1c4916952c169d3198fd078b1e92acf173b2863017e657c03dd01d63164d01"
+    },
+    {
+      "path": "models/RMVPE/rmvpe.onnx",
+      "bytes": 361688443,
+      "sha256": "5370e71ac80af8b4b7c793d27efd51fd8bf962de3a7ede0766dac0befa3660fd"
+    },
+    {
+      "path": "models/kashi-g2p-onnx/model.onnx",
+      "bytes": 106067476,
+      "sha256": "06769637537b8a6465620cb088eb6e8e45e7323d4dbfdd44bdeff70e287a7bc3"
+    },
+    {
+      "path": "models/kashi-g2p-onnx/resources/lexicon.txz",
+      "bytes": 10991580,
+      "sha256": "2fe8680d02c10fd980a67bb19afe3aaa498d3e8ded6f4e180adeccb369ed8fbc"
+    },
+    {
+      "path": "models/pc_nsf_hifigan_44.1k_hop512_128bin_2025.02/NOTICE.txt",
+      "bytes": 4103,
+      "sha256": "fcfca845812eb462e82f4c19985fce2abc772af979226b9297287c97e9a97f65"
+    },
+    {
+      "path": "models/pc_nsf_hifigan_44.1k_hop512_128bin_2025.02/NOTICE.zh-CN.txt",
+      "bytes": 4031,
+      "sha256": "8983f1ac07a0b240b9d4c970c8081007b0f932e5e223d88f8f8aef0e6570ed81"
+    },
+    {
+      "path": "models/pc_nsf_hifigan_44.1k_hop512_128bin_2025.02/STATEMENTS.txt",
+      "bytes": 1762,
+      "sha256": "fe208abd522fd9e77ee16063ca2b3d6466fe3a35db70578f615d28543dd62d85"
+    },
+    {
+      "path": "models/pc_nsf_hifigan_44.1k_hop512_128bin_2025.02/config.json",
+      "bytes": 607,
+      "sha256": "983bb78f45f6790e573033bfab46163743e0182d564fc5eca6938743cca6a2ea"
+    },
+    {
+      "path": "models/pc_nsf_hifigan_44.1k_hop512_128bin_2025.02/model.ckpt",
+      "bytes": 56663267,
+      "sha256": "d6dd28909d2a1a2dcf74b3e3aa0b82b48695b87979fdf41561940aeecd85c67f"
+    },
+    {
+      "path": "models/romajiASR/model.meta.json",
+      "bytes": 505,
+      "sha256": "2b4aa01afa9a01ee9443bc4cd4c5f423dbcb32f9d9c9e536a64c8727f08599c3"
+    },
+    {
+      "path": "models/romajiASR/model.onnx",
+      "bytes": 189335760,
+      "sha256": "f8512aa5416f344134593acf3ec44fda2863eae36a2dab6a84d36490d9c9a259"
+    },
+    {
+      "path": "models/romajiASR/phoneme_vocab.json",
+      "bytes": 2176,
+      "sha256": "4e96b35f058685aa1ac63b1c9e1cc386fa75d85ede5d55997fbbac6e7ec932bb"
+    },
+    {
+      "path": "models/tifa-1.0-onnx/assets/LstmG2p-Eng/char.json",
+      "bytes": 457,
+      "sha256": "99db14a8dfeb313f7190b80098693c02d5b7530af282ef6fe81c4da0cd982138"
+    },
+    {
+      "path": "models/tifa-1.0-onnx/assets/LstmG2p-Eng/config.json",
+      "bytes": 217,
+      "sha256": "72357a005ff51874041086583a2ad2537842b4b0635fe8e6df31d090d54bb77a"
+    },
+    {
+      "path": "models/tifa-1.0-onnx/assets/LstmG2p-Eng/decoder.onnx",
+      "bytes": 1491741,
+      "sha256": "b5c7e48bd08b4b1d4e1449fdf37e6e07d468f3bea6b5ff6752d470e6f91b2f99"
+    },
+    {
+      "path": "models/tifa-1.0-onnx/assets/LstmG2p-Eng/encoder.onnx",
+      "bytes": 2536734,
+      "sha256": "00c6475b6a4c28389f236ca9985157c9b59fe2eabddb4f44d562c999194d7645"
+    },
+    {
+      "path": "models/tifa-1.0-onnx/assets/LstmG2p-Eng/phonemes.json",
+      "bytes": 634,
+      "sha256": "4c2e4f50744a88993cda3e7a8f208f5d0e9198995163a1cf5ea71258278b6a85"
+    },
+    {
+      "path": "models/tifa-1.0-onnx/config.json",
+      "bytes": 165,
+      "sha256": "3380e63d13754364808ca92c9090e6a489b733864a99f07188ed6e5f457b2549"
+    },
+    {
+      "path": "models/tifa-1.0-onnx/dictionaries/ds-zh-pinyin-lite.txt",
+      "bytes": 5879,
+      "sha256": "41df515ebb995c120792f99412f85e6468e68bd9b95cb305821aeb15c3e8fef3"
+    },
+    {
+      "path": "models/tifa-1.0-onnx/dictionaries/ds_cmudict-07b.txt",
+      "bytes": 3236761,
+      "sha256": "4e57172c13302f9032fd0396a90d29f8f7ba8021c854a6d3d226a979daba8b3d"
+    },
+    {
+      "path": "models/tifa-1.0-onnx/dictionaries/ja_lexicon.txz",
+      "bytes": 10991580,
+      "sha256": "2fe8680d02c10fd980a67bb19afe3aaa498d3e8ded6f4e180adeccb369ed8fbc"
+    },
+    {
+      "path": "models/tifa-1.0-onnx/dictionaries/japanese_dict_full.txt",
+      "bytes": 2664,
+      "sha256": "267e7250ecae5c0683abefbbca9b18ad33c70d18d31549a75df84cc6435d8c1e"
+    },
+    {
+      "path": "models/tifa-1.0-onnx/dictionaries/jyutping_dict.txt",
+      "bytes": 6258,
+      "sha256": "6b9df850a9778f842b6f15b74d61d79e135133dd01afdeb7aef59167fa69ca44"
+    },
+    {
+      "path": "models/tifa-1.0-onnx/model.onnx",
+      "bytes": 159793943,
+      "sha256": "75e1db74ae3a7968f3cb2f104bceb55dd149042ff42e170d1d230355783f2532"
+    },
+    {
+      "path": "models/tifa-1.0-onnx/prepare.onnx",
+      "bytes": 30776,
+      "sha256": "f55667ed220ba3208d1b121bfc228cd04ef2d10c4e49eabcee72c1f7e08af7ed"
+    },
+    {
+      "path": "models/tifa-1.0-onnx/score.onnx",
+      "bytes": 24079,
+      "sha256": "c3730cd8e4c91069b7565a720cb9d02fca42852188373f6266666bca6e18dadf"
+    },
+    {
+      "path": "models/tifa-1.0-onnx/select.onnx",
+      "bytes": 13463,
+      "sha256": "abfab83229bf3a8e188c137553ed04edefcc59500435e4aba7e6ddc77f71d9d5"
+    },
+    {
+      "path": "models/tifa-1.0-onnx/spectrogram.onnx",
+      "bytes": 339493,
+      "sha256": "2fe85f8507d1acd998fa854869fda75f3a2fa1d316f1e56ef4ea29df8b2a51a4"
+    },
+    {
+      "path": "models/tifa-1.0-onnx/vocabulary.json",
+      "bytes": 4115,
+      "sha256": "644c85ac28cfe4f26fcf60de5a6d1fe192c11a6a837746119ef2dbc6dac9246c"
+    }
+  ],
+  "runtime_file_count": 32675,
+  "verification": {
+    "reparse_points": 0,
+    "hard_links": 0
+  },
+  "japanese_adaptation": {
+    "updated_at": "2026-10-15T14:43:01.576828+00:00",
+    "production_asr": "models/romajiASR",
+    "alternative_asr": "models/Qwen3-ASR-1.7B-dml",
+    "g2p": "models/kashi-g2p-onnx",
+    "fallback_runtime": "python/Lib/site-packages/pyopenjtalk",
+    "fallback_dictionary": "python/Lib/site-packages/pyopenjtalk/open_jtalk_dic_utf_8-1.11",
+    "mecab_unidic_required": false,
+    "copy_method": "shutil.copy2 (physical byte copy)",
+    "source_hashes_verified": true,
+    "new_file_count": 5,
+    "new_total_bytes": 306397497,
+    "license_status": "No per-model license or notice files are included in the upstream kashi-g2p-onnx and romajiASR bundles; no license is inferred."
+  }
+}

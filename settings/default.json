@@ -1,0 +1,15 @@
+{
+  "sample_rate": 44100,
+  "onnx_device": "dml",
+  "vocoder_device": "auto",
+  "language": "zh",
+  "max_chunk_seconds": 18.0,
+  "context_seconds": 0.75,
+  "minimum_alignment_quality": 0.35,
+  "maximum_stretch": 4.0,
+  "allow_acoustic_fallback": false,
+  "change_timing": true,
+  "pitch_mode": "off",
+  "map_teacher_pitch": false,
+  "vocoder_log_floor": 0.00001
+}

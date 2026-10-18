@@ -1,0 +1,60 @@
+{
+  "source": "C:\\ProgramData\\miniconda3\\envs\\vocal2midi\\Lib\\site-packages",
+  "copy_method": "physical copy",
+  "packages": [
+    {
+      "name": "torch",
+      "version": "2.8.0+cu129",
+      "files": 11514,
+      "bytes": 7516976390
+    },
+    {
+      "name": "filelock",
+      "version": "3.32.3",
+      "files": 27,
+      "bytes": 353169
+    },
+    {
+      "name": "typing-extensions",
+      "version": "4.16.0",
+      "files": 6,
+      "bytes": 182924
+    },
+    {
+      "name": "sympy",
+      "version": "1.14.0",
+      "files": 1570,
+      "bytes": 26935418
+    },
+    {
+      "name": "mpmath",
+      "version": "1.3.0",
+      "files": 93,
+      "bytes": 1955210
+    },
+    {
+      "name": "networkx",
+      "version": "3.6.1",
+      "files": 602,
+      "bytes": 7080946
+    },
+    {
+      "name": "jinja2",
+      "version": "3.1.6",
+      "files": 32,
+      "bytes": 498175
+    },
+    {
+      "name": "markupsafe",
+      "version": "3.0.3",
+      "files": 12,
+      "bytes": 37230
+    },
+    {
+      "name": "fsspec",
+      "version": "2026.6.0",
+      "files": 62,
+      "bytes": 746338
+    }
+  ]
+}

@@ -1,0 +1,252 @@
+{
+  "version": 1,
+  "created_at": "2026-10-15T14:42:45.028474+00:00",
+  "source": "D:\\Vocal2Midi",
+  "root": "D:\\CopyVocal",
+  "files": [
+    {
+      "path": "models/kashi-g2p-onnx/model.onnx",
+      "bytes": 106067476,
+      "sha256": "06769637537b8a6465620cb088eb6e8e45e7323d4dbfdd44bdeff70e287a7bc3",
+      "source_sha256": "06769637537b8a6465620cb088eb6e8e45e7323d4dbfdd44bdeff70e287a7bc3",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "models/kashi-g2p-onnx/resources/lexicon.txz",
+      "bytes": 10991580,
+      "sha256": "2fe8680d02c10fd980a67bb19afe3aaa498d3e8ded6f4e180adeccb369ed8fbc",
+      "source_sha256": "2fe8680d02c10fd980a67bb19afe3aaa498d3e8ded6f4e180adeccb369ed8fbc",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "models/romajiASR/model.meta.json",
+      "bytes": 505,
+      "sha256": "2b4aa01afa9a01ee9443bc4cd4c5f423dbcb32f9d9c9e536a64c8727f08599c3",
+      "source_sha256": "2b4aa01afa9a01ee9443bc4cd4c5f423dbcb32f9d9c9e536a64c8727f08599c3",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "models/romajiASR/model.onnx",
+      "bytes": 189335760,
+      "sha256": "f8512aa5416f344134593acf3ec44fda2863eae36a2dab6a84d36490d9c9a259",
+      "source_sha256": "f8512aa5416f344134593acf3ec44fda2863eae36a2dab6a84d36490d9c9a259",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "models/romajiASR/phoneme_vocab.json",
+      "bytes": 2176,
+      "sha256": "4e96b35f058685aa1ac63b1c9e1cc386fa75d85ede5d55997fbbac6e7ec932bb",
+      "source_sha256": "4e96b35f058685aa1ac63b1c9e1cc386fa75d85ede5d55997fbbac6e7ec932bb",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "models/tifa-1.0-onnx/dictionaries/ja_lexicon.txz",
+      "bytes": 10991580,
+      "sha256": "2fe8680d02c10fd980a67bb19afe3aaa498d3e8ded6f4e180adeccb369ed8fbc",
+      "source_sha256": "2fe8680d02c10fd980a67bb19afe3aaa498d3e8ded6f4e180adeccb369ed8fbc",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "models/tifa-1.0-onnx/dictionaries/japanese_dict_full.txt",
+      "bytes": 2664,
+      "sha256": "267e7250ecae5c0683abefbbca9b18ad33c70d18d31549a75df84cc6435d8c1e",
+      "source_sha256": "267e7250ecae5c0683abefbbca9b18ad33c70d18d31549a75df84cc6435d8c1e",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "python/Lib/site-packages/pyopenjtalk/__init__.py",
+      "bytes": 8182,
+      "sha256": "cb7db1cdc919fb9073517c35be816d11a4a88f161d28bdd06b75ee2f7d08e2b5",
+      "source_sha256": "cb7db1cdc919fb9073517c35be816d11a4a88f161d28bdd06b75ee2f7d08e2b5",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "python/Lib/site-packages/pyopenjtalk/htsengine.cp312-win_amd64.pyd",
+      "bytes": 147968,
+      "sha256": "1262da08c968a9323514e9e99b045cb2c26c492300e6ebb375c3126e620c5019",
+      "source_sha256": "1262da08c968a9323514e9e99b045cb2c26c492300e6ebb375c3126e620c5019",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "python/Lib/site-packages/pyopenjtalk/htsvoice/LICENSE_mei_normal.htsvoice",
+      "bytes": 2870,
+      "sha256": "af8a05b6ce28e513658fdf0480f36dbf49cbe878d2571d97dd017e8052c71391",
+      "source_sha256": "af8a05b6ce28e513658fdf0480f36dbf49cbe878d2571d97dd017e8052c71391",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "python/Lib/site-packages/pyopenjtalk/htsvoice/README.md",
+      "bytes": 100,
+      "sha256": "fb27c90b564d726a6e8c1e03c812753102c692b08e6c86e4a4edb97050e976dd",
+      "source_sha256": "fb27c90b564d726a6e8c1e03c812753102c692b08e6c86e4a4edb97050e976dd",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "python/Lib/site-packages/pyopenjtalk/htsvoice/mei_normal.htsvoice",
+      "bytes": 862503,
+      "sha256": "f3be49a6838904a6c218790b64e07c3e83c1886e995dca284b413caab19184de",
+      "source_sha256": "f3be49a6838904a6c218790b64e07c3e83c1886e995dca284b413caab19184de",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "python/Lib/site-packages/pyopenjtalk/open_jtalk_dic_utf_8-1.11/COPYING",
+      "bytes": 5865,
+      "sha256": "f4eca42ebd930e2c6e57fca58319d989bebcd1510cb7714b149c50f5425135ea",
+      "source_sha256": "f4eca42ebd930e2c6e57fca58319d989bebcd1510cb7714b149c50f5425135ea",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "python/Lib/site-packages/pyopenjtalk/open_jtalk_dic_utf_8-1.11/char.bin",
+      "bytes": 262496,
+      "sha256": "888ee94c5a8a7a26d24ab3f1b7155441351954fd51ea06b4a2f78bd742492b2f",
+      "source_sha256": "888ee94c5a8a7a26d24ab3f1b7155441351954fd51ea06b4a2f78bd742492b2f",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "python/Lib/site-packages/pyopenjtalk/open_jtalk_dic_utf_8-1.11/left-id.def",
+      "bytes": 77672,
+      "sha256": "db1adac8a7f9e5854cd82ea044c85115249206c8181b9d88cf92ae2ee5e87b84",
+      "source_sha256": "db1adac8a7f9e5854cd82ea044c85115249206c8181b9d88cf92ae2ee5e87b84",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "python/Lib/site-packages/pyopenjtalk/open_jtalk_dic_utf_8-1.11/matrix.bin",
+      "bytes": 3792262,
+      "sha256": "62fd16b4f64c851d5dc352ef0d5740c5fc83ddc7c203b2b0b1fc5271969a14ce",
+      "source_sha256": "62fd16b4f64c851d5dc352ef0d5740c5fc83ddc7c203b2b0b1fc5271969a14ce",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "python/Lib/site-packages/pyopenjtalk/open_jtalk_dic_utf_8-1.11/pos-id.def",
+      "bytes": 1923,
+      "sha256": "3460aa742053085af47cdfc889a1e0e6f557e89b406e501ba81c9ccc286de0c7",
+      "source_sha256": "3460aa742053085af47cdfc889a1e0e6f557e89b406e501ba81c9ccc286de0c7",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "python/Lib/site-packages/pyopenjtalk/open_jtalk_dic_utf_8-1.11/rewrite.def",
+      "bytes": 7457,
+      "sha256": "7f7c8dfbfe24092e8a149a9b6e0a3a7f1c2cf37d6c3dc29d1cccc6c004da9c1c",
+      "source_sha256": "7f7c8dfbfe24092e8a149a9b6e0a3a7f1c2cf37d6c3dc29d1cccc6c004da9c1c",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "python/Lib/site-packages/pyopenjtalk/open_jtalk_dic_utf_8-1.11/right-id.def",
+      "bytes": 77672,
+      "sha256": "db1adac8a7f9e5854cd82ea044c85115249206c8181b9d88cf92ae2ee5e87b84",
+      "source_sha256": "db1adac8a7f9e5854cd82ea044c85115249206c8181b9d88cf92ae2ee5e87b84",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "python/Lib/site-packages/pyopenjtalk/open_jtalk_dic_utf_8-1.11/sys.dic",
+      "bytes": 103073776,
+      "sha256": "ca57d9029691a70a5dfb99afc2844180256161d7130da65b1a867510e129b9a6",
+      "source_sha256": "ca57d9029691a70a5dfb99afc2844180256161d7130da65b1a867510e129b9a6",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "python/Lib/site-packages/pyopenjtalk/open_jtalk_dic_utf_8-1.11/unk.dic",
+      "bytes": 5690,
+      "sha256": "ce97851ecda075914fa3ffe7294a1ab34ee4f6d56ba6bf9197d74143b5dffbfe",
+      "source_sha256": "ce97851ecda075914fa3ffe7294a1ab34ee4f6d56ba6bf9197d74143b5dffbfe",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "python/Lib/site-packages/pyopenjtalk/openjtalk.cp312-win_amd64.pyd",
+      "bytes": 1666048,
+      "sha256": "e346f55ffd7ca7cd90e1b401320ecb0c480b71870b268b878dcaa9ac6a8f9109",
+      "source_sha256": "e346f55ffd7ca7cd90e1b401320ecb0c480b71870b268b878dcaa9ac6a8f9109",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "python/Lib/site-packages/pyopenjtalk/utils.py",
+      "bytes": 835,
+      "sha256": "eecf50dbfc3d329ce5f34810d55ee35951b7e467dbd14ff28e618a4662ed5cfa",
+      "source_sha256": "eecf50dbfc3d329ce5f34810d55ee35951b7e467dbd14ff28e618a4662ed5cfa",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "python/Lib/site-packages/pyopenjtalk/version.py",
+      "bytes": 23,
+      "sha256": "97cc2e4d230de7f7a0bed158d17d531e9fdd7e297471136606e6fe658883a48d",
+      "source_sha256": "97cc2e4d230de7f7a0bed158d17d531e9fdd7e297471136606e6fe658883a48d",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "models/Qwen3-ASR-1.7B-dml/qwen3_asr_encoder_backend.fp16.onnx",
+      "bytes": 611548981,
+      "sha256": "dce32f4d7f7679b5a9e7359d881a3d57763cd91dd1023a3dcbab15f64d59d325",
+      "source_sha256": "dce32f4d7f7679b5a9e7359d881a3d57763cd91dd1023a3dcbab15f64d59d325",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "models/Qwen3-ASR-1.7B-dml/qwen3_asr_encoder_frontend.fp16.onnx",
+      "bytes": 27112576,
+      "sha256": "ac8deb4e34e6d0cc4b4aec164d8a848c1de3fc9e2b4dc8e81243ba8c18666ce3",
+      "source_sha256": "ac8deb4e34e6d0cc4b4aec164d8a848c1de3fc9e2b4dc8e81243ba8c18666ce3",
+      "link_count": 1,
+      "passed": true
+    },
+    {
+      "path": "models/Qwen3-ASR-1.7B-dml/qwen3_asr_llm.f16.gguf",
+      "bytes": 4069674560,
+      "sha256": "0e1c4916952c169d3198fd078b1e92acf173b2863017e657c03dd01d63164d01",
+      "source_sha256": "0e1c4916952c169d3198fd078b1e92acf173b2863017e657c03dd01d63164d01",
+      "link_count": 1,
+      "passed": true
+    }
+  ],
+  "file_count": 27,
+  "passed": true,
+  "shared_qwen_included": true,
+  "production_path": "romaji ASR -> TiFA mora alignment; Qwen -> kashi G2P alternative",
+  "optional_runtime": "pyopenjtalk fallback with project-local Open JTalk dictionary; MeCab and UniDic are not used by kashi G2P.",
+  "cpu_smoke": {
+    "passed": true,
+    "origins": {
+      "pyopenjtalk": "D:\\CopyVocal\\python\\Lib\\site-packages\\pyopenjtalk\\__init__.py",
+      "inference.kashi_g2p_ja.g2p_onnx_runtime": "D:\\CopyVocal\\inference\\kashi_g2p_ja\\g2p_onnx_runtime.py",
+      "inference.romaji_asr.runtime": "D:\\CopyVocal\\inference\\romaji_asr\\runtime.py",
+      "onnxruntime": "D:\\CopyVocal\\python\\Lib\\site-packages\\onnxruntime\\__init__.py",
+      "numpy": "D:\\CopyVocal\\python\\Lib\\site-packages\\numpy\\__init__.py"
+    },
+    "open_jtalk_dictionary": "D:\\CopyVocal\\python\\Lib\\site-packages\\pyopenjtalk\\open_jtalk_dic_utf_8-1.11",
+    "providers": {
+      "kashi_g2p": [
+        "CPUExecutionProvider"
+      ],
+      "romaji_asr": [
+        "CPUExecutionProvider"
+      ]
+    },
+    "text": "君と歌う空",
+    "kashi_reading": "きみとうたうそら",
+    "open_jtalk_reading": "キミトウタウソラ",
+    "romaji_vocabulary_size": 161
+  }
+}
