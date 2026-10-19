@@ -105,10 +105,10 @@ class CorrectionInterface(ScrollArea):
         card, layout = self._card("card_axes")
         self.timing_switch = self._switch(card, "check_timing")
         self.pitch_combo = ComboBox(card)
-        self.pitch_combo.setFixedWidth(180)
+        self.pitch_combo.setFixedWidth(185)
         self.pitch_map_switch = self._switch(card, "check_pitch_map")
         self.language_combo = ComboBox(card)
-        self.language_combo.setFixedWidth(110)
+        self.language_combo.setFixedWidth(115)
         for item in LANGUAGES:
             self.language_combo.addItem(item, userData=item)
         cells = [self._field(card, "check_timing", self.timing_switch, "tooltip_check_timing"),

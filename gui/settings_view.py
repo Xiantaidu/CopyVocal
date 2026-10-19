@@ -39,9 +39,9 @@ class SettingsInterface(ScrollArea):
 
         appearance, layout = self._card("card_appearance")
         self.theme_combo = ComboBox(appearance)
-        self.theme_combo.setFixedWidth(220)
+        self.theme_combo.setFixedWidth(225)
         self.language_combo = ComboBox(appearance)
-        self.language_combo.setFixedWidth(220)
+        self.language_combo.setFixedWidth(225)
         self._fill_theme_combo()
         self._fill_language_combo()
         self._bind_tr(self._fill_theme_combo)

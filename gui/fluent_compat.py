@@ -615,9 +615,10 @@ class ComboBox(QComboBox):
         super().__init__(parent)
         self.items: list[ComboItem] = []
         self.setFont(_base_font())
-        # The original combo is a flat button, so it sits slightly shorter
-        # than the 33 px text fields.
-        self.setFixedHeight(27)
+        # Tall enough for a CJK line: 19 px of ascent+descent needs a 21 px content
+        # box, and 27 px of height with the old 5/6 padding left only 14 px, which
+        # sliced the top and bottom off Chinese glyphs.
+        self.setFixedHeight(30)
         self._restyle()
         qconfig.themeChangedFinished.connect(self._restyle)
 
@@ -636,7 +637,7 @@ class ComboBox(QComboBox):
             f" border: 1px solid {t['combo_border']};"
             f" border-{t['combo_edge_side']}: 1px solid {t['combo_edge']};"
             " border-radius: 5px;"
-            " padding: 5px 31px 6px 11px;"
+            " padding: 3px 31px 4px 11px;"
             " text-align: left;"
             "}"
             f"QComboBox:hover {{ background-color: {t['control_hover']}; }}"

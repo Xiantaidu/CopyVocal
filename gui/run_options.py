@@ -40,7 +40,7 @@ class RunOptionsCard(CardWidget):
 
         self.onnx_combo, self.vocoder_combo = ComboBox(self), ComboBox(self)
         for combo, items in ((self.onnx_combo, ONNX_DEVICES), (self.vocoder_combo, VOCODER_DEVICES)):
-            combo.setFixedWidth(110)
+            combo.setFixedWidth(115)
             for item in items:
                 combo.addItem(item, userData=item)
         layout.addLayout(cell_grid([self._field(self, "label_lyric_backend", self.onnx_combo, "tooltip_onnx"),

@@ -139,7 +139,7 @@ class ResultsInterface(ScrollArea):
         self.listening_label = BodyLabel(tr("label_listening"), audio_card)
         self._bind_tr(lambda: self.listening_label.setText(tr("label_listening")))
         self.audio_combo = ComboBox(audio_card)
-        self.audio_combo.setMinimumWidth(220)
+        self.audio_combo.setMinimumWidth(225)
         self.play_button = PushButton(tr("button_play"), audio_card)
         self.stop_button = PushButton(tr("button_stop"), audio_card)
         self._bind_tr(lambda: (self.play_button.setText(tr("button_play")),
