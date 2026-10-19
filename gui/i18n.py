@@ -139,13 +139,13 @@ _STRINGS: dict[str, dict[str, str]] = {
 
     "check_game": {"zh": "提取音符（可选 MIDI 分析）", "en": "Extract notes (optional MIDI analysis)"},
     "check_experiments": {
-        "zh": "输出 A/B 对照（identity / 仅音高 / 仅节奏）",
-        "en": "Render A/B files (identity / pitch only / timing only)",
+        "zh": "输出 A/B 对照文件",
+        "en": "Render A/B comparison files",
     },
     "check_verify": {"zh": "校验导出波形", "en": "Verify the exported waveform"},
     "check_verify_timing": {
-        "zh": "重新测量输出词边界（较慢的 ASR/TiFA 流程）",
-        "en": "Remeasure output word boundaries (slower ASR/TiFA pass)",
+        "zh": "重新测量输出词边界",
+        "en": "Remeasure output word boundaries",
     },
     "check_analyze_only": {"zh": "只做分析（不合成）", "en": "Analyze only (no synthesis)"},
     "check_skip_analysis": {
@@ -157,12 +157,12 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Allow low-confidence acoustic fallback timing",
     },
     "check_timing": {
-        "zh": "改变节奏（学生节奏 → 教师节奏）",
-        "en": "Change timing (student timeline → teacher timeline)",
+        "zh": "改变节奏",
+        "en": "Change timing",
     },
     "check_pitch_map": {
-        "zh": "改变 pitch 曲线（使用教师的滑音与颤音）",
-        "en": "Change the pitch contour (use the teacher's slides and vibrato)",
+        "zh": "改变音高曲线",
+        "en": "Change pitch contour",
     },
     "axis_hint": {
         "zh": "三项互相独立。音高关闭时完全不动音高，只改节奏。",

@@ -11,8 +11,8 @@ from application.artifacts import ROOT
 from gui import text as T
 from gui.fluent_compat import (BodyLabel, CardWidget, ComboBox, DoubleSpinBox, Expander, FluentIcon,
                                HintLabel, IndeterminateProgressRing, LineEdit, ListWidget,
-                               PrimaryPushButton, PushButton, ScrollArea, SettingRow, SubtitleLabel,
-                               SwitchButton)
+                               PrimaryPushButton, PushButton, ScrollArea, SettingField, SettingRow,
+                               SubtitleLabel, SwitchButton)
 from gui.i18n import tr
 from gui.job import AUDIO_SUFFIXES, LANGUAGES, PREFS_PATH, JobRequest, suggested_output
 from gui.log_terminal import LogTerminal
@@ -52,8 +52,8 @@ class CorrectionInterface(ScrollArea):
         self.view = QWidget(self)
         self.view.setObjectName("view")
         self.vBoxLayout = QVBoxLayout(self.view)
-        self.vBoxLayout.setContentsMargins(36, 16, 36, 28)
-        self.vBoxLayout.setSpacing(16)
+        self.vBoxLayout.setContentsMargins(36, 16, 36, 24)
+        self.vBoxLayout.setSpacing(14)
         self.setWidget(self.view)
         self.setWidgetResizable(True)
         self.enableTransparentBackground()
@@ -106,70 +106,51 @@ class CorrectionInterface(ScrollArea):
         self.vBoxLayout.addWidget(card)
 
     def _build_correction(self) -> None:
-        """The three correction axes, the one decision this page exists for."""
+        """The three correction axes side by side, so the whole choice costs one row."""
         card, layout = self._card("card_axes")
         self._switches: dict[str, SwitchButton] = {}
         self.timing_switch = self._switch(card, "check_timing")
         self.pitch_combo = ComboBox(card)
-        self.pitch_combo.setFixedWidth(200)
+        self.pitch_combo.setFixedWidth(180)
         self.pitch_map_switch = self._switch(card, "check_pitch_map")
-        axis = QVBoxLayout()
-        axis.setSpacing(6)
-        axis.addWidget(self._switch_row(card, "check_timing", self.timing_switch))
-        axis.addWidget(self._setting_row(card, "label_pitch_mode", self.pitch_combo, "tooltip_pitch_mode"))
-        axis.addWidget(self._switch_row(card, "check_pitch_map", self.pitch_map_switch))
-        layout.addLayout(axis)
+        cells = [self._field(card, "check_timing", self.timing_switch, "tooltip_check_timing"),
+                 self._field(card, "label_pitch_mode", self.pitch_combo, "tooltip_pitch_mode"),
+                 self._field(card, "check_pitch_map", self.pitch_map_switch, "tooltip_check_pitch_map")]
+        layout.addLayout(self._cell_grid(cells, columns=3))
         self._fill_pitch_modes()
         self._bind_tr(self._fill_pitch_modes)
         self.axis_hint = HintLabel(tr("axis_hint"), card)
         self.axis_hint.setWordWrap(True)
         self._bind_tr(lambda: self.axis_hint.setText(tr("axis_hint")))
         layout.addWidget(self.axis_hint)
-        for widget in (self.timing_switch, self.pitch_combo, self.pitch_map_switch):
-            widget.setToolTip(tr("axis_hint"))
         self.vBoxLayout.addWidget(card)
 
     def _build_options(self) -> None:
         card, layout = self._card("card_options")
         self.onnx_combo, self.vocoder_combo, self.language_combo = ComboBox(card), ComboBox(card), ComboBox(card)
-        for combo, width in ((self.onnx_combo, 110), (self.vocoder_combo, 110), (self.language_combo, 110)):
-            combo.setFixedWidth(width)
+        for combo in (self.onnx_combo, self.vocoder_combo, self.language_combo):
+            combo.setFixedWidth(110)
         for combo, items in ((self.onnx_combo, ("dml", "cpu")),
                              (self.vocoder_combo, ("auto", "cuda", "cpu")),
                              (self.language_combo, LANGUAGES)):
             for item in items:
                 combo.addItem(item, userData=item)
-        device_grid = QGridLayout()
-        device_grid.setHorizontalSpacing(12)
-        device_grid.setVerticalSpacing(8)
-        for column, (label_key, widget, tip_key) in enumerate((
-                ("label_lyric_backend", self.onnx_combo, "tooltip_onnx"),
-                ("label_vocoder_device", self.vocoder_combo, "tooltip_vocoder"),
-                ("label_language", self.language_combo, None))):
-            label = BodyLabel(tr(label_key), card)
-            self._bind_tr(lambda label=label, key=label_key: label.setText(tr(key)))
-            device_grid.addWidget(label, 0, column * 2)
-            device_grid.addWidget(widget, 0, column * 2 + 1)
-            if tip_key:
-                widget.setToolTip(tr(tip_key))
-                self._bind_tr(lambda widget=widget, key=tip_key: widget.setToolTip(tr(key)))
-        device_grid.setColumnStretch(6, 1)
-        layout.addLayout(device_grid)
+        fields = [self._field(card, label_key, widget, tip_key)
+                  for label_key, widget, tip_key in (
+                      ("label_lyric_backend", self.onnx_combo, "tooltip_onnx"),
+                      ("label_vocoder_device", self.vocoder_combo, "tooltip_vocoder"),
+                      ("label_language", self.language_combo, None))]
+        layout.addLayout(self._cell_grid(fields, columns=3))
 
-        toggles = QVBoxLayout()
-        toggles.setSpacing(6)
-        for key in ("check_game", "check_verify"):
-            toggles.addWidget(self._switch_row(card, key))
-        layout.addLayout(toggles)
+        toggles = [self._switch_row(card, key) for key in ("check_game", "check_verify")]
+        layout.addLayout(self._cell_grid(toggles, columns=2))
 
         self.run_expander = Expander(tr("expander_run_modes"), card)
         self._bind_tr(lambda: self.run_expander.setTitle(tr("expander_run_modes")))
-        more = QVBoxLayout()
-        more.setSpacing(6)
-        for key in ("check_experiments", "check_verify_timing", "check_analyze_only",
-                    "check_skip_analysis", "check_fallback"):
-            more.addWidget(self._switch_row(self.run_expander, key))
-        self.run_expander.setContentLayout(more)
+        more = [self._switch_row(self.run_expander, key)
+                for key in ("check_experiments", "check_verify_timing", "check_analyze_only",
+                            "check_skip_analysis", "check_fallback")]
+        self.run_expander.setContentWidget(self._grid_holder(more, 2, self.run_expander))
         layout.addWidget(self.run_expander)
 
         self._build_advanced(layout)
@@ -200,38 +181,65 @@ class CorrectionInterface(ScrollArea):
             self._bind_tr(lambda: (label.setToolTip(tr(tip_key)), control.setToolTip(tr(tip_key))))
         return row
 
+    def _field(self, parent, key: str, control: QWidget, tip_key: str | None = None) -> QWidget:
+        """Caption above its control, so several fit side by side on one row."""
+        field = SettingField(tr(key), control, parent)
+        self._bind_tr(lambda field=field, key=key: field.setText(tr(key)))
+        if tip_key:
+            field.label().setToolTip(tr(tip_key))
+            control.setToolTip(tr(tip_key))
+            self._bind_tr(lambda: (field.label().setToolTip(tr(tip_key)),
+                                   control.setToolTip(tr(tip_key))))
+        return field
+
     def _switch_row(self, parent, key: str, switch: SwitchButton | None = None) -> QWidget:
         """A switch on the right of its sentence, so the state never reads as a prefix."""
         switch = switch if switch is not None else self._switch(parent, key)
         return self._setting_row(parent, key, switch, f"tooltip_{key}")
 
+    def _cell_grid(self, cells, columns: int) -> QGridLayout:
+        """Pack cells sideways into columns, filling left to right row by row."""
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(24)
+        grid.setVerticalSpacing(10)
+        for index, cell in enumerate(cells):
+            row, column = divmod(index, columns)
+            grid.addWidget(cell, row, column)
+        # Columns take their natural width and the slack collects at the end:
+        # squeezing a caption below its width is what forces it onto two lines.
+        grid.setColumnStretch(columns, 1)
+        return grid
+
+    def _grid_holder(self, cells, columns: int, parent) -> QWidget:
+        """A grid inside a widget, for containers that adopt widgets, not layouts."""
+        holder = QWidget(parent)
+        holder.setLayout(self._cell_grid(cells, columns))
+        return holder
+
     def _build_advanced(self, layout) -> None:
         """The numeric knobs, folded into the options card behind an expander."""
         self.advanced_expander = Expander(tr("expander_advanced"))
         self._bind_tr(lambda: self.advanced_expander.setTitle(tr("expander_advanced")))
-        grid = QGridLayout()
-        grid.setHorizontalSpacing(12)
-        grid.setVerticalSpacing(10)
         self.chunk_spin = self._spin(1.0, 600.0, self.request.max_chunk_seconds, 1.0, " s")
         self.context_spin = self._spin(0.01, 10.0, self.request.context_seconds, 0.05, " s")
         self.quality_spin = self._spin(0.01, 1.0, self.request.minimum_alignment_quality, 0.05, "")
         self.stretch_spin = self._spin(1.0, 100.0, self.request.maximum_stretch, 0.5, " x")
         self.floor_spin = self._spin(1e-9, 1.0, self.request.log_floor, 1e-5, "", decimals=9)
-        for row, (label_key, widget, tip_key) in enumerate((
-                ("advanced_max_chunk", self.chunk_spin, "tooltip_max_chunk"),
-                ("advanced_context", self.context_spin, "tooltip_context"),
-                ("advanced_quality", self.quality_spin, "tooltip_quality"),
-                ("advanced_stretch", self.stretch_spin, "tooltip_stretch"),
-                ("advanced_floor", self.floor_spin, "tooltip_floor"))):
-            label = BodyLabel(tr(label_key))
-            self._bind_tr(lambda label=label, key=label_key: label.setText(tr(key)))
-            widget.setToolTip(tr(tip_key))
-            self._bind_tr(lambda widget=widget, key=tip_key: widget.setToolTip(tr(key)))
-            grid.addWidget(label, row, 0)
-            grid.addWidget(widget, row, 1)
-        grid.setColumnStretch(1, 1)
-        self.advanced_expander.setContentLayout(grid)
+        cells = [self._spin_row(self.advanced_expander, label_key, spin, tip_key)
+                 for label_key, spin, tip_key in (
+                     ("advanced_max_chunk", self.chunk_spin, "tooltip_max_chunk"),
+                     ("advanced_context", self.context_spin, "tooltip_context"),
+                     ("advanced_quality", self.quality_spin, "tooltip_quality"),
+                     ("advanced_stretch", self.stretch_spin, "tooltip_stretch"),
+                     ("advanced_floor", self.floor_spin, "tooltip_floor"))]
+        self.advanced_expander.setContentWidget(
+            self._grid_holder(cells, 2, self.advanced_expander))
         layout.addWidget(self.advanced_expander)
+
+    def _spin_row(self, parent, label_key: str, spin: DoubleSpinBox, tip_key: str) -> QWidget:
+        spin.setToolTip(tr(tip_key))
+        self._bind_tr(lambda: spin.setToolTip(tr(tip_key)))
+        return self._setting_row(parent, label_key, spin, tip_key)
 
     def _spin(self, low: float, high: float, value: float, step: float, suffix: str,
               decimals: int = 3) -> DoubleSpinBox:
@@ -240,6 +248,9 @@ class CorrectionInterface(ScrollArea):
         spin.setDecimals(decimals)
         spin.setSingleStep(step)
         spin.setValue(float(value))
+        # A spin box left to stretch absorbs the whole column, so the value ends
+        # up marooned at the left of a very wide field.
+        spin.setFixedWidth(160)
         if suffix:
             spin.setSuffix(suffix)
         spin.valueChanged.connect(self._sync_enabled)

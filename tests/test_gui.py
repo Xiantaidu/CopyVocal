@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from PySide6.QtWidgets import QApplication, QHBoxLayout
+from PySide6.QtWidgets import QApplication, QGridLayout, QHBoxLayout
 
 from gui import correction_view as gui_correction
 from gui import text as T
@@ -785,6 +785,28 @@ class LayoutCompositionTests(unittest.TestCase):
             parent = parent.parentWidget()
         raise AssertionError(f"{widget} is not inside a horizontal row")
 
+    @staticmethod
+    def _cell_of(widget):
+        """The SettingField/SettingRow that holds one caption and its control."""
+        parent = widget.parentWidget()
+        while parent is not None:
+            if parent.__class__.__name__ in {"SettingField", "SettingRow"}:
+                return parent
+            parent = parent.parentWidget()
+        raise AssertionError(f"{widget} is not inside a setting cell")
+
+    @staticmethod
+    def _grid_of(cell):
+        """The QGridLayout that holds a setting cell, found by searching upwards."""
+        parent = cell.parentWidget()
+        while parent is not None:
+            for grid in parent.findChildren(QGridLayout):
+                for index in range(grid.count()):
+                    if grid.itemAt(index).widget() is cell:
+                        return grid
+            parent = parent.parentWidget()
+        raise AssertionError(f"{cell} is not in a grid")
+
     def test_a_switch_sits_after_its_caption(self):
         row = self._row_of(self.window.game_check)
         order = [row.itemAt(index).widget() for index in range(row.count())]
@@ -792,17 +814,36 @@ class LayoutCompositionTests(unittest.TestCase):
         self.assertLess(order.index(caption), order.index(self.window.game_check))
         self.assertIn(tr("check_game"), caption.text())
 
-    def test_the_correction_axes_are_their_own_card(self):
-        # A misplaced switch once drew on top of the card title; each axis must
-        # live in a row inside the axes card, not loose in the view.
+    def test_the_correction_axes_share_one_row_of_their_own_card(self):
+        # A misplaced switch once drew on top of the card title, and the axes were
+        # stacked as three full-width rows; they belong side by side in one card.
         from gui.fluent_compat import CardWidget
         cards = self.window.correction.view.findChildren(CardWidget)
-        for widget in (self.window.timing_check, self.window.pitch_combo, self.window.pitch_map_check):
-            row = self._row_of(widget)
-            owner = row.parentWidget()
+        axes = (self.window.timing_check, self.window.pitch_combo, self.window.pitch_map_check)
+        for widget in axes:
+            owner = self._cell_of(widget)
             while owner is not None and not isinstance(owner, CardWidget):
                 owner = owner.parentWidget()
             self.assertIn(owner, cards, f"{widget} is not inside a card")
+        grid = self._grid_of(self._cell_of(axes[0]))
+        for widget in axes:
+            cell = self._cell_of(widget)
+            rows = {grid.getItemPosition(i)[0] for i in range(grid.count())
+                    if grid.itemAt(i).widget() is cell}
+            self.assertEqual(rows, {0}, "the three correction axes must share one row")
+
+    def test_the_run_options_are_packed_sideways(self):
+        # The devices and the two top-level toggles each fill one row, and no two
+        # settings share a cell.
+        for group in ((self.window.onnx_combo, self.window.vocoder_combo, self.window.language_combo),
+                      (self.window.game_check, self.window.verify_check)):
+            cells = [self._cell_of(w) for w in group]
+            self.assertEqual(len({id(c) for c in cells}), len(cells))
+            grid = self._grid_of(cells[0])
+            for cell in cells:
+                rows = {grid.getItemPosition(i)[0] for i in range(grid.count())
+                        if grid.itemAt(i).widget() is cell}
+                self.assertEqual(rows, {0}, f"{cell} must share one row")
 
     def test_hints_use_the_secondary_text_label(self):
         from gui.fluent_compat import HintLabel

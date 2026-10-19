@@ -70,6 +70,7 @@ __all__ = [
     "PrimaryPushButton",
     "PushButton",
     "ScrollArea",
+    "SettingField",
     "SettingRow",
     "SpinBox",
     "SubtitleLabel",
@@ -367,11 +368,52 @@ class SettingRow(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(16)
         self._label = BodyLabel(text, self)
-        self._label.setWordWrap(True)
-        layout.addWidget(self._label, 1)
+        # No wrapping: a wrapped label reports a one-line height for a width
+        # narrower than it ends up with, so the caption reads as a two-line stack.
+        # Columns keep their natural width instead and never squeeze it.
+        self._label.setWordWrap(False)
+        layout.addWidget(self._label)
         if control is not None:
             control.setParent(self)
-            layout.addWidget(control, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            layout.addWidget(control, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        # The control hugs its caption. Flushing it to the right edge would leave
+        # a gap wide enough to read as an empty column once rows sit side by side.
+        layout.addStretch(1)
+
+    def text(self) -> str:
+        return self._label.text()
+
+    def setText(self, text: str) -> None:
+        self._label.setText(text)
+
+    def label(self) -> QLabel:
+        return self._label
+
+    def control(self) -> QWidget | None:
+        return self._control_widget
+
+
+class SettingField(QWidget):
+    """One caption above its control, for several settings sharing a row."""
+
+    def __init__(self, text: str = "", control: QWidget | None = None, parent=None):
+        super().__init__(parent)
+        self._control_widget = control
+        policy = self.sizePolicy()
+        policy.setHeightForWidth(True)
+        self.setSizePolicy(policy)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        self._label = BodyLabel(text, self)
+        # Sits above its control, so it is sized to its own text and never
+        # squeezed; keeping it on one line lets the controls below it line up.
+        self._label.setWordWrap(False)
+        layout.addWidget(self._label)
+        if control is not None:
+            control.setParent(self)
+            layout.addWidget(control, 0, Qt.AlignmentFlag.AlignLeft)
+        layout.addStretch(1)
 
     def text(self) -> str:
         return self._label.text()
@@ -456,6 +498,11 @@ class Expander(QWidget):
             elif item.layout() is not None:
                 self._body_layout.addLayout(item.layout())
         self._body_layout.addStretch(0)
+
+    def setContentWidget(self, widget: QWidget):
+        """Adopt one composed block, keeping its own arrangement intact."""
+        widget.setParent(self._body)
+        self._body_layout.addWidget(widget)
 
     def content_layout(self) -> QVBoxLayout:
         return self._body_layout
