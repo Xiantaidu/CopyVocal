@@ -9,6 +9,8 @@ _QUIET_BEGIN = 0.100
 _QUIET_FULL = 0.032
 _CEILING_HEADROOM = 2.0
 _MINIMUM_GAIN = 0.001
+# Same tolerance transitions.py uses to refuse a degenerate gap window.
+_EPSILON = 1e-8
 
 
 def _energy_integral(audio: np.ndarray) -> np.ndarray:
@@ -106,6 +108,10 @@ def reference_transition_gain(
         gap_end = float(transition["gap_teacher_end"])
         outer_start = float(transition["teacher_start"])
         outer_end = float(transition["teacher_end"])
+        # Adjacent regions share a boundary time, so round-off can invert the gap by
+        # a few femtoseconds. It holds no audio: drop it rather than reject the plan.
+        if gap_end < gap_start and gap_start - gap_end <= _EPSILON:
+            continue
         if not (np.isfinite([gap_start, gap_end, outer_start, outer_end]).all()
                 and outer_start <= gap_start <= gap_end <= outer_end):
             raise ValueError("Acoustic dynamics requires a gap inside its outer phone anchors.")

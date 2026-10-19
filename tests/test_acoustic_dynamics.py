@@ -118,6 +118,24 @@ class AcousticDynamicsTests(unittest.TestCase):
         self.assertLess(gain[500], 0.03)
         self.assertGreater(report[0]["teacher_phone_reference_rms"], 0.05)
 
+    def test_a_gap_that_rounds_to_zero_is_skipped_not_rejected(self):
+        # Adjacent regions share one boundary time, and the two ends can disagree by
+        # a few femtoseconds of float round-off. That gap holds no audio, so it must
+        # be dropped rather than raised on: a real 100 s job died here.
+        transition = {**self.transitions[0],
+                      "gap_teacher_start": 0.5 + 1.4210854715202004e-14,
+                      "gap_teacher_end": 0.5}
+        gain, report = self.compute(transitions=[transition])
+        np.testing.assert_array_equal(gain, np.ones(len(self.times), np.float32))
+        self.assertEqual(report, [])
+
+    def test_a_misordered_gap_is_still_rejected(self):
+        # The tolerance only forgives float noise; a genuinely inverted window is a
+        # broken plan and must not be silently ignored.
+        transition = {**self.transitions[0], "gap_teacher_start": 0.7, "gap_teacher_end": 0.3}
+        with self.assertRaises(ValueError):
+            self.compute(transitions=[transition])
+
 
 if __name__ == "__main__":
     unittest.main()

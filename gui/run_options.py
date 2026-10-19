@@ -1,5 +1,3 @@
-"""The run-option card: devices, run modes and the analysis parameters."""
-
 from __future__ import annotations
 
 from PySide6.QtCore import Signal, Slot
