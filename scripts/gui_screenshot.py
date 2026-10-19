@@ -10,6 +10,7 @@ sys.path.insert(0, str(ROOT))
 
 from PySide6.QtWidgets import QApplication
 
+from gui.i18n import tr
 from gui.window import MainWindow
 
 
@@ -35,7 +36,8 @@ def main() -> int:
     for stage, state in (("analysis", "done"), ("alignment", "done"), ("render", "running")):
         window._update_stage(stage, state)
     window._update_progress(72)
-    window.detail_label.setText("正在渲染：full")
+    window.progress_bar.setVisible(True)
+    window.detail_label.setText(tr("detail_running"))
     window.stage_list.setVisible(True)
     save(window, application, "gui_screenshot.png")
 

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QGridLayout, QVBoxLayout, QWidget
 
-from gui.fluent_compat import (BodyLabel, CardWidget, ComboBox, ScrollArea, SubtitleLabel, Theme,
-                               setTheme)
+from gui.fluent_compat import (BodyLabel, CardWidget, ComboBox, HintLabel, ScrollArea, SubtitleLabel,
+                               Theme, setTheme)
 from gui.i18n import tr
 
 
@@ -25,8 +25,8 @@ class SettingsInterface(ScrollArea):
         self.view = QWidget(self)
         self.view.setObjectName("view")
         self.vBoxLayout = QVBoxLayout(self.view)
-        self.vBoxLayout.setContentsMargins(36, 20, 36, 36)
-        self.vBoxLayout.setSpacing(20)
+        self.vBoxLayout.setContentsMargins(36, 16, 36, 28)
+        self.vBoxLayout.setSpacing(16)
         self.setWidget(self.view)
         self.setWidgetResizable(True)
         self.enableTransparentBackground()
@@ -36,35 +36,34 @@ class SettingsInterface(ScrollArea):
         self.vBoxLayout.addWidget(self.title_label)
 
         appearance, layout = self._card("card_appearance")
-        grid = QGridLayout()
-        grid.setHorizontalSpacing(12)
-        grid.setVerticalSpacing(10)
-        self.theme_label = BodyLabel(tr("label_theme"), appearance)
         self.theme_combo = ComboBox(appearance)
-        self.theme_combo.setMinimumWidth(180)
-        self.language_label = BodyLabel(tr("label_ui_language"), appearance)
+        self.theme_combo.setFixedWidth(220)
         self.language_combo = ComboBox(appearance)
-        self.language_combo.setMinimumWidth(180)
-        self._bind_tr(lambda: (self.theme_label.setText(tr("label_theme")),
-                               self.language_label.setText(tr("label_ui_language"))))
+        self.language_combo.setFixedWidth(220)
         self._fill_theme_combo()
         self._fill_language_combo()
         self._bind_tr(self._fill_theme_combo)
         self._bind_tr(self._fill_language_combo)
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(28)
+        grid.setVerticalSpacing(8)
+        self.theme_label = BodyLabel(tr("label_theme"), appearance)
+        self.language_label = BodyLabel(tr("label_ui_language"), appearance)
+        self._bind_tr(lambda: (self.theme_label.setText(tr("label_theme")),
+                               self.language_label.setText(tr("label_ui_language"))))
         grid.addWidget(self.theme_label, 0, 0)
         grid.addWidget(self.theme_combo, 0, 1)
         grid.addWidget(self.language_label, 0, 2)
         grid.addWidget(self.language_combo, 0, 3)
-        grid.setColumnStretch(1, 1)
-        grid.setColumnStretch(3, 1)
+        grid.setColumnStretch(4, 1)
         layout.addLayout(grid)
         self.vBoxLayout.addWidget(appearance)
 
         about, about_layout = self._card("card_about")
-        self.about_label = BodyLabel(tr("about_body"), about)
+        self.about_label = HintLabel(tr("about_body"), about)
         self.about_label.setWordWrap(True)
         self._bind_tr(lambda: self.about_label.setText(tr("about_body")))
-        self.version_label = BodyLabel(tr("version_info", version=self._version), about)
+        self.version_label = HintLabel(tr("version_info", version=self._version), about)
         self._bind_tr(lambda: self.version_label.setText(tr("version_info", version=self._version)))
         about_layout.addWidget(self.about_label)
         about_layout.addWidget(self.version_label)
@@ -77,8 +76,8 @@ class SettingsInterface(ScrollArea):
     def _card(self, title_key: str) -> tuple[CardWidget, QVBoxLayout]:
         card = CardWidget(self)
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(20, 16, 20, 16)
-        layout.setSpacing(12)
+        layout.setContentsMargins(20, 14, 20, 14)
+        layout.setSpacing(10)
         label = BodyLabel(tr(title_key), card)
         label.setStyleSheet("font-weight: bold; font-size: 14px;")
         self._bind_tr(lambda: label.setText(tr(title_key)))

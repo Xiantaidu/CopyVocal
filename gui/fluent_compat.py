@@ -58,6 +58,7 @@ __all__ = [
     "Expander",
     "FluentIcon",
     "FluentWindow",
+    "HintLabel",
     "IconWidget",
     "IndeterminateProgressRing",
     "InfoBar",
@@ -69,6 +70,7 @@ __all__ = [
     "PrimaryPushButton",
     "PushButton",
     "ScrollArea",
+    "SettingRow",
     "SpinBox",
     "SubtitleLabel",
     "SwitchButton",
@@ -78,6 +80,7 @@ __all__ = [
     "isDarkTheme",
     "qconfig",
     "setTheme",
+    "theme_color",
 ]
 
 _ICON_DIR = Path(__file__).resolve().parent / "assets" / "icons"
@@ -114,6 +117,11 @@ def _rgba(r: int, g: int, b: int, a: float) -> str:
     return f"rgba({r}, {g}, {b}, {a:.4f})"
 
 
+def theme_color(name: str, fallback: str = "") -> str:
+    """One token of the active theme, for call sites that style their own widgets."""
+    return _tokens().get(name, fallback)
+
+
 def _tokens() -> dict:
     if _resolve_dark():
         return {
@@ -137,6 +145,7 @@ def _tokens() -> dict:
             "card_bg": _rgba(255, 255, 255, 0.0512),
             "card_border": _rgba(255, 255, 255, 0.0706),
             "hover_overlay": _rgba(255, 255, 255, 0.0392),
+            "accent": _ACCENT,
             "accent_text": "#000000",
             "infobar": {
                 "info": (39, 39, 39),
@@ -164,6 +173,7 @@ def _tokens() -> dict:
         "card_bg": _rgba(255, 255, 255, 0.6667),
         "card_border": _rgba(0, 0, 0, 0.0588),
         "hover_overlay": _rgba(0, 0, 0, 0.0353),
+        "accent": _ACCENT,
         "accent_text": "#ffffff",
         "infobar": {
             "info": (244, 244, 244),
@@ -311,6 +321,11 @@ class _CompatLabel(QLabel):
         self.setStyleSheet(
             f"font-size: {self._font_size}px; font-weight: {self._font_weight};"
         )
+        # Wrapped labels are tall, not short: without this the enclosing
+        # layout sizes them from the one-line hint and clips the text.
+        policy = self.sizePolicy()
+        policy.setHeightForWidth(True)
+        self.setSizePolicy(policy)
 
 
 class BodyLabel(_CompatLabel):
@@ -323,12 +338,64 @@ class SubtitleLabel(_CompatLabel):
     _font_weight = "600"
 
 
+class HintLabel(_CompatLabel):
+    """Small secondary text for the note under a group of controls."""
+
+    _font_size = 12
+    _font_weight = "normal"
+
+    def __init__(self, text=None, parent=None):
+        super().__init__(text, parent)
+        self._restyle()
+        qconfig.themeChangedFinished.connect(self._restyle)
+
+    def _restyle(self):
+        self.setStyleSheet(f"font-size: {self._font_size}px; font-weight: {self._font_weight}; "
+                           f"color: {_tokens()['text_secondary']};")
+
+
+class SettingRow(QWidget):
+    """One caption on the left, one control on the right, as in system settings."""
+
+    def __init__(self, text: str = "", control: QWidget | None = None, parent=None):
+        super().__init__(parent)
+        self._control_widget = control
+        policy = self.sizePolicy()
+        policy.setHeightForWidth(True)
+        self.setSizePolicy(policy)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(16)
+        self._label = BodyLabel(text, self)
+        self._label.setWordWrap(True)
+        layout.addWidget(self._label, 1)
+        if control is not None:
+            control.setParent(self)
+            layout.addWidget(control, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+    def text(self) -> str:
+        return self._label.text()
+
+    def setText(self, text: str) -> None:
+        self._label.setText(text)
+
+    def label(self) -> QLabel:
+        return self._label
+
+    def control(self) -> QWidget | None:
+        return self._control_widget
+
+
 class CardWidget(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("compatCard")
         self.setFrameShape(QFrame.Shape.NoFrame)
+        # A card whose text wraps has to grow with it, or the last line is cut.
+        policy = self.sizePolicy()
+        policy.setHeightForWidth(True)
+        self.setSizePolicy(policy)
         self._restyle()
         qconfig.themeChangedFinished.connect(self._restyle)
 
@@ -355,6 +422,9 @@ class Expander(QWidget):
         super().__init__(parent)
         self._expanded = bool(expanded)
         self._title = title
+        policy = self.sizePolicy()
+        policy.setHeightForWidth(True)
+        self.setSizePolicy(policy)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
@@ -770,25 +840,33 @@ class SwitchButton(QWidget):
         return self._onText
 
     def setOnText(self, text: str):
+        # Decide before mutating: setOnText/setOffText run as a pair and the
+        # second call would no longer find the old text among the new captions.
+        follows_state = self._text in (self._onText, self._offText)
         self._onText = text
-        self._refresh_text()
+        if follows_state:
+            self._apply_state_text(force=True)
 
     def getOffText(self) -> str:
         return self._offText
 
     def setOffText(self, text: str):
+        follows_state = self._text in (self._onText, self._offText)
         self._offText = text
-        self._refresh_text()
+        if follows_state:
+            self._apply_state_text(force=True)
+
+    def _apply_state_text(self, force: bool = False):
+        if force or self._text in (self._onText, self._offText):
+            self.setText(self._onText if self.isChecked() else self._offText)
 
     def _refresh_text(self):
         # Only the built-in On/Off captions follow the state; a custom text
         # (as passed to the constructor) stays fixed.
-        if self._text in (self._onText, self._offText):
-            self.setText(self._onText if self.isChecked() else self._offText)
+        self._apply_state_text()
 
     def _on_toggled(self, checked: bool):
-        if self._text in (self._onText, self._offText):
-            self._label.setText(self._onText if checked else self._offText)
+        self._apply_state_text()
         self.checkedChanged.emit(checked)
 
     def setEnabled(self, enabled: bool):

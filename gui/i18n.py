@@ -11,7 +11,8 @@ _STRINGS: dict[str, dict[str, str]] = {
     "nav_settings": {"zh": "设置", "en": "Settings"},
 
     "card_recordings": {"zh": "录音文件", "en": "Recordings"},
-    "card_options": {"zh": "选项", "en": "Options"},
+    "card_axes": {"zh": "校正方式", "en": "Correction"},
+    "card_options": {"zh": "运行选项", "en": "Run options"},
     "card_progress": {"zh": "运行", "en": "Run"},
     "card_results": {"zh": "结果", "en": "Results"},
     "card_appearance": {"zh": "外观", "en": "Appearance"},
@@ -45,7 +46,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "label_vocoder_device": {"zh": "声码器设备", "en": "Vocoder device"},
     "label_language": {"zh": "语言", "en": "Language"},
     "label_listening": {"zh": "试听", "en": "Listen"},
-    "label_pitch_mode": {"zh": "音高：", "en": "Pitch: "},
+    "label_pitch_mode": {"zh": "改变音高（三选一）", "en": "Change pitch (one of three)"},
     "label_theme": {"zh": "主题", "en": "Theme"},
     "label_ui_language": {"zh": "界面语言", "en": "Interface language"},
 
@@ -164,11 +165,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Change the pitch contour (use the teacher's slides and vibrato)",
     },
     "axis_hint": {
-        "zh": "三项互相独立。「音高」是关闭 / 拉到教师音高 / 适应模式的三选一，「改变 pitch 曲线」决定用谁的音高走向；"
-              "音高关闭时完全不动音高，只改节奏。",
-        "en": "The three are independent. Pitch is a three-way switch, and the contour checkbox decides "
-              "whose pitch movement is sung; with pitch off, nothing moves the pitch at all and only the "
-              "timing is corrected.",
+        "zh": "三项互相独立。音高关闭时完全不动音高，只改节奏。",
+        "en": "The three are independent. With pitch off, nothing moves the pitch at all and only the timing changes.",
     },
     "pitch_mode_off": {"zh": "关闭", "en": "Off"},
     "pitch_mode_teacher": {"zh": "拉到教师音高", "en": "Match teacher pitch"},

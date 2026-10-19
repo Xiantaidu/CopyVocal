@@ -2,16 +2,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QUrl, Signal, Slot
-from PySide6.QtGui import QBrush, QColor, QDesktopServices, QFont
-from PySide6.QtWidgets import (QFileDialog, QGridLayout, QHBoxLayout, QLabel, QListWidgetItem,
+from PySide6.QtCore import Qt, Signal, Slot
+from PySide6.QtGui import QBrush, QColor, QFont
+from PySide6.QtWidgets import (QFileDialog, QGridLayout, QHBoxLayout, QListWidgetItem,
                                QMessageBox, QVBoxLayout, QWidget)
 
 from application.artifacts import ROOT
 from gui import text as T
 from gui.fluent_compat import (BodyLabel, CardWidget, ComboBox, DoubleSpinBox, Expander, FluentIcon,
-                               IndeterminateProgressRing, LineEdit, ListWidget, PrimaryPushButton,
-                               PushButton, ScrollArea, SubtitleLabel, SwitchButton)
+                               HintLabel, IndeterminateProgressRing, LineEdit, ListWidget,
+                               PrimaryPushButton, PushButton, ScrollArea, SettingRow, SubtitleLabel,
+                               SwitchButton)
 from gui.i18n import tr
 from gui.job import AUDIO_SUFFIXES, LANGUAGES, PREFS_PATH, JobRequest, suggested_output
 from gui.log_terminal import LogTerminal
@@ -51,8 +52,8 @@ class CorrectionInterface(ScrollArea):
         self.view = QWidget(self)
         self.view.setObjectName("view")
         self.vBoxLayout = QVBoxLayout(self.view)
-        self.vBoxLayout.setContentsMargins(36, 20, 36, 36)
-        self.vBoxLayout.setSpacing(20)
+        self.vBoxLayout.setContentsMargins(36, 16, 36, 28)
+        self.vBoxLayout.setSpacing(16)
         self.setWidget(self.view)
         self.setWidgetResizable(True)
         self.enableTransparentBackground()
@@ -62,6 +63,7 @@ class CorrectionInterface(ScrollArea):
         self._bind_tr(lambda: self.title_label.setText(tr("nav_correction")))
 
         self._build_recordings()
+        self._build_correction()
         self._build_options()
         self._build_progress()
         self.vBoxLayout.addStretch(1)
@@ -69,12 +71,12 @@ class CorrectionInterface(ScrollArea):
     def _card(self, title_key: str) -> tuple[CardWidget, QVBoxLayout]:
         card = CardWidget(self)
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(20, 16, 20, 16)
-        layout.setSpacing(12)
+        layout.setContentsMargins(20, 14, 20, 14)
+        layout.setSpacing(10)
         label = BodyLabel(tr(title_key), card)
         label.setStyleSheet("font-weight: bold; font-size: 14px;")
         layout.addWidget(label)
-        self._bind_tr(lambda: label.setText(tr(title_key)))
+        self._bind_tr(lambda label=label: label.setText(tr(title_key)))
         return card, layout
 
     def _build_recordings(self) -> None:
@@ -85,7 +87,7 @@ class CorrectionInterface(ScrollArea):
                 ("label_output", self.output_edit, self._browse_output))
         grid = QGridLayout()
         grid.setHorizontalSpacing(12)
-        grid.setVerticalSpacing(10)
+        grid.setVerticalSpacing(8)
         for row, (label_key, edit, handler) in enumerate(rows):
             label = BodyLabel(tr(label_key), card)
             self._bind_tr(lambda label=label, key=label_key: label.setText(tr(key)))
@@ -97,16 +99,41 @@ class CorrectionInterface(ScrollArea):
             grid.addWidget(button, row, 2)
         grid.setColumnStretch(1, 1)
         layout.addLayout(grid)
-        self.hint_label = BodyLabel(tr("hint_inputs"), card)
+        self.hint_label = HintLabel(tr("hint_inputs"), card)
         self.hint_label.setWordWrap(True)
         self._bind_tr(lambda: self.hint_label.setText(tr("hint_inputs")))
         layout.addWidget(self.hint_label)
         self.vBoxLayout.addWidget(card)
 
+    def _build_correction(self) -> None:
+        """The three correction axes, the one decision this page exists for."""
+        card, layout = self._card("card_axes")
+        self._switches: dict[str, SwitchButton] = {}
+        self.timing_switch = self._switch(card, "check_timing")
+        self.pitch_combo = ComboBox(card)
+        self.pitch_combo.setFixedWidth(200)
+        self.pitch_map_switch = self._switch(card, "check_pitch_map")
+        axis = QVBoxLayout()
+        axis.setSpacing(6)
+        axis.addWidget(self._switch_row(card, "check_timing", self.timing_switch))
+        axis.addWidget(self._setting_row(card, "label_pitch_mode", self.pitch_combo, "tooltip_pitch_mode"))
+        axis.addWidget(self._switch_row(card, "check_pitch_map", self.pitch_map_switch))
+        layout.addLayout(axis)
+        self._fill_pitch_modes()
+        self._bind_tr(self._fill_pitch_modes)
+        self.axis_hint = HintLabel(tr("axis_hint"), card)
+        self.axis_hint.setWordWrap(True)
+        self._bind_tr(lambda: self.axis_hint.setText(tr("axis_hint")))
+        layout.addWidget(self.axis_hint)
+        for widget in (self.timing_switch, self.pitch_combo, self.pitch_map_switch):
+            widget.setToolTip(tr("axis_hint"))
+        self.vBoxLayout.addWidget(card)
+
     def _build_options(self) -> None:
         card, layout = self._card("card_options")
-        self._switches: dict[str, SwitchButton] = {}
         self.onnx_combo, self.vocoder_combo, self.language_combo = ComboBox(card), ComboBox(card), ComboBox(card)
+        for combo, width in ((self.onnx_combo, 110), (self.vocoder_combo, 110), (self.language_combo, 110)):
+            combo.setFixedWidth(width)
         for combo, items in ((self.onnx_combo, ("dml", "cpu")),
                              (self.vocoder_combo, ("auto", "cuda", "cpu")),
                              (self.language_combo, LANGUAGES)):
@@ -114,6 +141,7 @@ class CorrectionInterface(ScrollArea):
                 combo.addItem(item, userData=item)
         device_grid = QGridLayout()
         device_grid.setHorizontalSpacing(12)
+        device_grid.setVerticalSpacing(8)
         for column, (label_key, widget, tip_key) in enumerate((
                 ("label_lyric_backend", self.onnx_combo, "tooltip_onnx"),
                 ("label_vocoder_device", self.vocoder_combo, "tooltip_vocoder"),
@@ -125,49 +153,24 @@ class CorrectionInterface(ScrollArea):
             if tip_key:
                 widget.setToolTip(tr(tip_key))
                 self._bind_tr(lambda widget=widget, key=tip_key: widget.setToolTip(tr(key)))
+        device_grid.setColumnStretch(6, 1)
         layout.addLayout(device_grid)
 
-        self.timing_switch = self._switch(card, "check_timing")
-        self.pitch_combo = ComboBox(card)
-        self.pitch_combo.setMinimumWidth(160)
-        pitch_label = BodyLabel(tr("label_pitch_mode"), card)
-        self._bind_tr(lambda: pitch_label.setText(tr("label_pitch_mode")))
-        self.pitch_map_switch = self._switch(card, "check_pitch_map")
-        axis_row = QHBoxLayout()
-        axis_row.setSpacing(12)
-        for widget in (self.timing_switch, pitch_label, self.pitch_combo, self.pitch_map_switch):
-            axis_row.addWidget(widget)
-        axis_row.addStretch(1)
-        layout.addLayout(axis_row)
-        self._fill_pitch_modes()
-        self._bind_tr(self._fill_pitch_modes)
-
-        # The switches only show on/off; the sentence beside each one carries the
-        # meaning, and a tooltip carries the rationale.
-        popular = QVBoxLayout()
-        popular.setSpacing(8)
+        toggles = QVBoxLayout()
+        toggles.setSpacing(6)
         for key in ("check_game", "check_verify"):
-            popular.addWidget(self._switch_row(card, key))
-        layout.addLayout(popular)
+            toggles.addWidget(self._switch_row(card, key))
+        layout.addLayout(toggles)
 
         self.run_expander = Expander(tr("expander_run_modes"), card)
         self._bind_tr(lambda: self.run_expander.setTitle(tr("expander_run_modes")))
         more = QVBoxLayout()
-        more.setSpacing(8)
+        more.setSpacing(6)
         for key in ("check_experiments", "check_verify_timing", "check_analyze_only",
                     "check_skip_analysis", "check_fallback"):
             more.addWidget(self._switch_row(self.run_expander, key))
         self.run_expander.setContentLayout(more)
         layout.addWidget(self.run_expander)
-
-        self.axis_hint = BodyLabel(tr("axis_hint"), card)
-        self.axis_hint.setWordWrap(True)
-        self.axis_hint.setStyleSheet("color: #888;")
-        self._bind_tr(lambda: self.axis_hint.setText(tr("axis_hint")))
-        layout.addWidget(self.axis_hint)
-        self.timing_switch.setToolTip(tr("axis_hint"))
-        self.pitch_combo.setToolTip(tr("axis_hint"))
-        self.pitch_map_switch.setToolTip(tr("axis_hint"))
 
         self._build_advanced(layout)
         self.vBoxLayout.addWidget(card)
@@ -186,23 +189,21 @@ class CorrectionInterface(ScrollArea):
         switch.setOnText(tr("switch_on"))
         switch.setOffText(tr("switch_off"))
 
-    def _switch_row(self, parent, key: str) -> QWidget:
-        """A switch plus its sentence, so the caption never shows as on/off."""
-        row = QWidget(parent)
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
-        switch = self._switch(row, key)
-        label = BodyLabel(tr(key), row)
-        label.setWordWrap(True)
-        self._bind_tr(lambda label=label, key=key: label.setText(tr(key)))
-        switch.setToolTip(tr(f"tooltip_{key}"))
-        label.setToolTip(tr(f"tooltip_{key}"))
-        self._bind_tr(lambda switch=switch, label=label, key=key: (
-            switch.setToolTip(tr(f"tooltip_{key}")), label.setToolTip(tr(f"tooltip_{key}"))))
-        layout.addWidget(switch, 0, Qt.AlignmentFlag.AlignTop)
-        layout.addWidget(label, 1)
+    def _setting_row(self, parent, key: str, control: QWidget, tip_key: str | None = None) -> QWidget:
+        """Caption on the left, its control on the right, as in system settings."""
+        row = SettingRow(tr(key), control, parent)
+        self._bind_tr(lambda row=row, key=key: row.setText(tr(key)))
+        if tip_key:
+            label = row.label()
+            label.setToolTip(tr(tip_key))
+            control.setToolTip(tr(tip_key))
+            self._bind_tr(lambda: (label.setToolTip(tr(tip_key)), control.setToolTip(tr(tip_key))))
         return row
+
+    def _switch_row(self, parent, key: str, switch: SwitchButton | None = None) -> QWidget:
+        """A switch on the right of its sentence, so the state never reads as a prefix."""
+        switch = switch if switch is not None else self._switch(parent, key)
+        return self._setting_row(parent, key, switch, f"tooltip_{key}")
 
     def _build_advanced(self, layout) -> None:
         """The numeric knobs, folded into the options card behind an expander."""
@@ -250,27 +251,28 @@ class CorrectionInterface(ScrollArea):
         row.setSpacing(12)
         self.run_button = PrimaryPushButton(tr("button_run"), card, FluentIcon.PLAY)
         self._bind_tr(lambda: self.run_button.setText(tr("button_run")))
+        self.run_button.setMinimumWidth(120)
         self.cancel_button = PushButton(tr("button_cancel"), card, FluentIcon.PAUSE)
         self.cancel_button.setEnabled(False)
         self._bind_tr(lambda: self.cancel_button.setText(tr("button_cancel")))
         self.progress_ring = IndeterminateProgressRing(card)
         self.progress_ring.setFixedSize(28, 28)
         self.progress_ring.hide()
-        self.progress_bar = _ProgressBar(card)
-        for widget in (self.run_button, self.cancel_button, self.progress_ring, self.progress_bar):
-            row.addWidget(widget)
-        row.setStretchFactor(self.progress_bar, 1)
+        row.addWidget(self.run_button)
+        row.addWidget(self.cancel_button)
+        row.addWidget(self.progress_ring)
+        row.addStretch(1)
         layout.addLayout(row)
-        self.command_label = BodyLabel("", card)
-        self.command_label.setFont(_monospace())
-        self.command_label.setWordWrap(True)
-        self.command_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self.command_expander = Expander(tr("expander_command"), card, expanded=False)
-        self._bind_tr(lambda: self.command_expander.setTitle(tr("expander_command")))
-        command_layout = QVBoxLayout()
-        command_layout.addWidget(self.command_label)
-        self.command_expander.setContentLayout(command_layout)
-        layout.addWidget(self.command_expander)
+
+        self.progress_bar = _ProgressBar(card)
+        # An idle bar reads as an empty divider; it belongs to a running job.
+        self.progress_bar.setVisible(False)
+        layout.addWidget(self.progress_bar)
+        self.detail_label = BodyLabel(tr("detail_no_job"), card)
+        self.detail_label.setWordWrap(True)
+        self._bind_tr(lambda: self.detail_label.setText(tr("detail_no_job")))
+        layout.addWidget(self.detail_label)
+
         self.stage_list = ListWidget(card)
         self.stage_list.setMaximumHeight(150)
         for key, _label in STAGES:
@@ -283,10 +285,17 @@ class CorrectionInterface(ScrollArea):
         # idle window shows the decisions rather than six rows of pending text.
         self.stage_list.setVisible(False)
         layout.addWidget(self.stage_list)
-        self.detail_label = BodyLabel(tr("detail_no_job"), card)
-        self.detail_label.setWordWrap(True)
-        self._bind_tr(lambda: self.detail_label.setText(tr("detail_no_job")))
-        layout.addWidget(self.detail_label)
+
+        self.command_label = BodyLabel("", card)
+        self.command_label.setFont(_monospace())
+        self.command_label.setWordWrap(True)
+        self.command_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.command_expander = Expander(tr("expander_command"), card, expanded=False)
+        self._bind_tr(lambda: self.command_expander.setTitle(tr("expander_command")))
+        command_layout = QVBoxLayout()
+        command_layout.addWidget(self.command_label)
+        self.command_expander.setContentLayout(command_layout)
+        layout.addWidget(self.command_expander)
         self._build_log(layout)
         self.vBoxLayout.addWidget(card)
 
@@ -501,6 +510,7 @@ class CorrectionInterface(ScrollArea):
         self.log_view.clear()
         self.log_expander.expand()
         self.stage_list.setVisible(True)
+        self.progress_bar.setVisible(True)
         self._save_prefs()
         self.run_button.setEnabled(False)
         self.cancel_button.setEnabled(True)
@@ -513,6 +523,7 @@ class CorrectionInterface(ScrollArea):
             self.run_button.setEnabled(True)
             self.cancel_button.setEnabled(False)
             self.progress_ring.hide()
+            self.progress_bar.setVisible(False)
             QMessageBox.critical(self, tr("dialog_cannot_start"), str(error))
 
     def _append_log(self, text: str) -> None:
@@ -537,6 +548,7 @@ class CorrectionInterface(ScrollArea):
         self.run_button.setEnabled(True)
         self.cancel_button.setEnabled(False)
         self.progress_ring.hide()
+        self.progress_bar.setVisible(False)
         status = outcome.get("status")
         headline = T.run_status_headline(status)
         self.detail_label.setText(tr("detail_finished", status=headline,

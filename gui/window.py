@@ -1,21 +1,15 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt, QUrl
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import QSize
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-from application.artifacts import ROOT
-from gui import text as T
 from gui.correction_view import CorrectionInterface
 from gui.fluent_compat import FluentIcon, FluentWindow, NavigationItemPosition
 from gui.i18n import set_language, tr
 from gui.job import PREFS_PATH, JobRequest
-from gui.results import JobArtifacts
 from gui.results_view import ResultsInterface
-from gui.runner import PipelineRunner
 from gui.settings_view import SettingsInterface
 
 
@@ -35,7 +29,7 @@ class MainWindow(FluentWindow):
         self._build_navigation()
         self._connect()
         self.setAcceptDrops(True)
-        self._apply_fixed_physical_size(1260, 1000)
+        self._apply_fixed_physical_size(1260, 1120)
         self.settings.apply_theme(self._prefs_theme())
         self.settings.apply_language(self._prefs_language())
         self.correction._apply(self.request)
@@ -65,9 +59,20 @@ class MainWindow(FluentWindow):
         self.settings.themeChanged.connect(self._on_theme_changed)
         self.correction.runner.finished.connect(self._on_job_finished)
         self.correction.finished_signal.connect(self._on_job_finished_signal)
-        self.results.playback_failed.connect(
-            lambda message: self.statusBar().showMessage(tr("statusbar_playback_unavailable", message=message)))
-        self.statusBar().showMessage(tr("statusbar_ready"))
+        self.results.playback_failed.connect(self._on_playback_failed)
+        self._status_key, self._status_args = "statusbar_ready", {}
+        self._render_status()
+
+    def _render_status(self) -> None:
+        self.statusBar().showMessage(tr(self._status_key, **self._status_args))
+
+    def _show_status(self, key: str, **kwargs) -> None:
+        """Remember the key, not the sentence, so a language switch can re-render it."""
+        self._status_key, self._status_args = key, kwargs
+        self._render_status()
+
+    def _on_playback_failed(self, message: str) -> None:
+        self._show_status("statusbar_playback_unavailable", message=message)
 
     def _on_theme_changed(self, value: str) -> None:
         self._save_prefs()
@@ -79,6 +84,7 @@ class MainWindow(FluentWindow):
         self.correction.retranslate_ui()
         self.results.retranslate_ui()
         self.settings.retranslate_ui()
+        self._render_status()
         self.refresh_results()
         self._save_prefs()
 
@@ -98,7 +104,7 @@ class MainWindow(FluentWindow):
             self.stackedWidget.setCurrentWidget(self.results)
 
     def _on_job_finished_signal(self, status: str, headline: str) -> None:
-        self.statusBar().showMessage(tr("statusbar_job", status=headline))
+        self._show_status("statusbar_job", status=headline)
 
     def refresh_results(self) -> None:
         self.results.set_output(self.correction.output_edit.text().strip())
@@ -140,7 +146,7 @@ class MainWindow(FluentWindow):
             values["language"] = self.settings.language()
             PREFS_PATH.write_text(json.dumps(values, indent=2) + "\n", encoding="utf-8")
         except OSError:
-            self.statusBar().showMessage(tr("statusbar_prefs_failed"))
+            self._show_status("statusbar_prefs_failed")
 
     # The probes and tests drive the window through these names.
     @property

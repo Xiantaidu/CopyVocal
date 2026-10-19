@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QUrl, Signal, Slot
+from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PySide6.QtWidgets import (QAbstractItemView, QHBoxLayout, QHeaderView, QTableWidget,
@@ -11,9 +11,65 @@ from PySide6.QtWidgets import (QAbstractItemView, QHBoxLayout, QHeaderView, QTab
 from application.artifacts import ROOT
 from gui import text as T
 from gui.fluent_compat import (BodyLabel, CardWidget, ComboBox, PushButton, ScrollArea, SubtitleLabel,
-                               TextEdit)
+                               TextEdit, qconfig, theme_color)
 from gui.i18n import tr
 from gui.results import JobArtifacts
+
+
+def _tabs_qss() -> str:
+    """Flat tab strip: no pane border, an accent underline on the active tab."""
+    hint = theme_color("text_secondary", "rgba(0, 0, 0, 0.6)")
+    text = theme_color("text", "#000000")
+    accent = theme_color("accent", "#009faa")
+    hover = theme_color("hover_overlay", "rgba(0, 0, 0, 0.035)")
+    return (
+        "QTabWidget::pane { border: none; background: transparent; }"
+        "QTabBar { background: transparent; }"
+        "QTabBar::tab {"
+        " background: transparent;"
+        " border: none;"
+        " border-bottom: 2px solid transparent;"
+        f" color: {hint};"
+        " padding: 6px 4px;"
+        " margin-right: 22px;"
+        "}"
+        f"QTabBar::tab:hover {{ color: {text}; background-color: {hover}; }}"
+        "QTabBar::tab:selected {"
+        f" color: {text};"
+        f" border-bottom: 2px solid {accent};"
+        " font-weight: 600;"
+        "}"
+    )
+
+
+def _table_qss() -> str:
+    """Quiet table chrome: no grid, a flat header, rows that read as lines."""
+    hint = theme_color("text_secondary", "rgba(0, 0, 0, 0.6)")
+    border = theme_color("card_border", "rgba(0, 0, 0, 0.06)")
+    text = theme_color("text", "#000000")
+    return (
+        "QTableWidget {"
+        f" color: {text};"
+        " background: transparent;"
+        " border: none;"
+        " gridline-color: transparent;"
+        " outline: none;"
+        "}"
+        "QTableWidget::item { padding: 5px 8px; border: none; }"
+        "QTableWidget::item:selected {"
+        f" background-color: {theme_color('control_hover', 'rgba(0, 0, 0, 0.04)')};"
+        f" color: {text};"
+        "}"
+        "QHeaderView { background: transparent; }"
+        "QHeaderView::section {"
+        " background: transparent;"
+        " border: none;"
+        f" border-bottom: 1px solid {border};"
+        f" color: {hint};"
+        " padding: 6px 8px;"
+        " font-weight: 600;"
+        "}"
+    )
 
 
 class ResultsInterface(ScrollArea):
@@ -32,13 +88,15 @@ class ResultsInterface(ScrollArea):
         self._player_target = ""
         self._build()
         self._connect()
+        self._restyle_tables()
+        qconfig.themeChangedFinished.connect(self._restyle_tables)
 
     def _build(self) -> None:
         self.view = QWidget(self)
         self.view.setObjectName("view")
         self.vBoxLayout = QVBoxLayout(self.view)
-        self.vBoxLayout.setContentsMargins(36, 20, 36, 36)
-        self.vBoxLayout.setSpacing(20)
+        self.vBoxLayout.setContentsMargins(36, 16, 36, 28)
+        self.vBoxLayout.setSpacing(16)
         self.setWidget(self.view)
         self.setWidgetResizable(True)
         self.enableTransparentBackground()
@@ -49,7 +107,8 @@ class ResultsInterface(ScrollArea):
 
         summary_card = CardWidget(self)
         summary_layout = QVBoxLayout(summary_card)
-        summary_layout.setContentsMargins(20, 16, 20, 16)
+        summary_layout.setContentsMargins(20, 14, 20, 14)
+        summary_layout.setSpacing(6)
         self.summary_label = BodyLabel("", summary_card)
         self.summary_label.setWordWrap(True)
         self.summary_label.setTextFormat(Qt.TextFormat.RichText)
@@ -58,7 +117,7 @@ class ResultsInterface(ScrollArea):
 
         tables_card = CardWidget(self)
         tables_layout = QVBoxLayout(tables_card)
-        tables_layout.setContentsMargins(20, 16, 20, 16)
+        tables_layout.setContentsMargins(20, 14, 20, 14)
         self.tables = QTabWidget(tables_card)
         self.metric_table = self._table((tr("header_measurement"), tr("header_value")))
         self.region_table = self._table(tuple(tr("headers_regions").split(",")))
@@ -75,7 +134,7 @@ class ResultsInterface(ScrollArea):
 
         audio_card = CardWidget(self)
         audio_layout = QHBoxLayout(audio_card)
-        audio_layout.setContentsMargins(20, 16, 20, 16)
+        audio_layout.setContentsMargins(20, 12, 20, 12)
         audio_layout.setSpacing(12)
         self.listening_label = BodyLabel(tr("label_listening"), audio_card)
         self._bind_tr(lambda: self.listening_label.setText(tr("label_listening")))
@@ -95,7 +154,6 @@ class ResultsInterface(ScrollArea):
         audio_layout.addWidget(self.open_report_button)
         audio_layout.addWidget(self.open_output_button)
         self.vBoxLayout.addWidget(audio_card)
-        self.vBoxLayout.addStretch(1)
 
     def _refresh_table_titles(self) -> None:
         self.tables.setTabText(0, tr("table_metrics"))
@@ -104,6 +162,11 @@ class ResultsInterface(ScrollArea):
         self.metric_table.setHorizontalHeaderLabels([tr("header_measurement"), tr("header_value")])
         self.region_table.setHorizontalHeaderLabels(tuple(tr("headers_regions").split(",")))
 
+    def _restyle_tables(self) -> None:
+        self.tables.setStyleSheet(_tabs_qss())
+        for table in (self.metric_table, self.region_table):
+            table.setStyleSheet(_table_qss())
+
     def _table(self, headers: tuple[str, ...]) -> QTableWidget:
         table = QTableWidget(0, len(headers))
         table.setHorizontalHeaderLabels(list(headers))
@@ -111,8 +174,13 @@ class ResultsInterface(ScrollArea):
         table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         table.setAlternatingRowColors(True)
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        table.setShowGrid(False)
+        table.setWordWrap(False)
+        table.horizontalHeader().setHighlightSections(False)
+        table.horizontalHeader().setFixedHeight(32)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         table.horizontalHeader().setStretchLastSection(True)
+        table.setStyleSheet(_table_qss())
         return table
 
     def _connect(self) -> None:

@@ -13,9 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QHBoxLayout
 
+from gui import correction_view as gui_correction
 from gui import text as T
+from gui import window as gui_window
 from gui.i18n import tr, set_language
 from gui.job import JobRequest, suggested_output
 from gui.results import JobArtifacts
@@ -754,6 +756,100 @@ class ProgressiveDisclosureTests(unittest.TestCase):
     def test_advanced_values_survive_being_folded(self):
         self.window.chunk_spin.setValue(12.0)
         self.assertEqual(self.window._collect().max_chunk_seconds, 12.0)
+
+
+class LayoutCompositionTests(unittest.TestCase):
+    """Rows are composed, not dumped: captions lead, controls trail, hints are quiet."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.application = QApplication.instance() or QApplication([])
+
+    def setUp(self):
+        from gui.window import MainWindow
+        # Language and theme switches persist preferences; keep the user's file out of it.
+        target = Path(tempfile.mkdtemp()) / "gui_prefs.json"
+        for module in (gui_window, gui_correction):
+            self.addCleanup(setattr, module, "PREFS_PATH", module.PREFS_PATH)
+            module.PREFS_PATH = target
+        self.window = MainWindow()
+        self.addCleanup(self.window.deleteLater)
+
+    @staticmethod
+    def _row_of(widget) -> QHBoxLayout:
+        parent = widget.parentWidget()
+        while parent is not None:
+            layout = parent.layout()
+            if isinstance(layout, QHBoxLayout):
+                return layout
+            parent = parent.parentWidget()
+        raise AssertionError(f"{widget} is not inside a horizontal row")
+
+    def test_a_switch_sits_after_its_caption(self):
+        row = self._row_of(self.window.game_check)
+        order = [row.itemAt(index).widget() for index in range(row.count())]
+        caption = next(w for w in order if w is not self.window.game_check)
+        self.assertLess(order.index(caption), order.index(self.window.game_check))
+        self.assertIn(tr("check_game"), caption.text())
+
+    def test_the_correction_axes_are_their_own_card(self):
+        # A misplaced switch once drew on top of the card title; each axis must
+        # live in a row inside the axes card, not loose in the view.
+        from gui.fluent_compat import CardWidget
+        cards = self.window.correction.view.findChildren(CardWidget)
+        for widget in (self.window.timing_check, self.window.pitch_combo, self.window.pitch_map_check):
+            row = self._row_of(widget)
+            owner = row.parentWidget()
+            while owner is not None and not isinstance(owner, CardWidget):
+                owner = owner.parentWidget()
+            self.assertIn(owner, cards, f"{widget} is not inside a card")
+
+    def test_hints_use_the_secondary_text_label(self):
+        from gui.fluent_compat import HintLabel
+        for hint in (self.window.correction.axis_hint, self.window.correction.hint_label):
+            self.assertIsInstance(hint, HintLabel)
+            self.assertIn("font-size: 12px", hint.styleSheet())
+
+    def test_the_progress_bar_only_shows_for_a_running_job(self):
+        self.assertFalse(self.window.progress_bar.isVisibleTo(self.window.correction))
+
+    def test_a_switch_caption_follows_the_language(self):
+        from gui.i18n import set_language
+        set_language("zh")
+        switch = self.window.game_check
+        switch.setChecked(False)
+        try:
+            self.assertEqual("关", switch.text())
+            set_language("en")
+            self.window._on_language_changed("en")
+            # A retranslated caption must rewrite the text already on screen, not
+            # just the pair it will use the next time the switch is toggled.
+            self.assertEqual("Off", switch.text())
+            self.assertEqual(("On", "Off"), (switch.getOnText(), switch.getOffText()))
+            switch.setChecked(True)
+            self.assertEqual("On", switch.text())
+        finally:
+            set_language("zh")
+            self.window._on_language_changed("zh")
+
+    def test_the_status_bar_follows_the_language(self):
+        from gui.i18n import set_language
+        self.window._show_status("statusbar_job", status="done")
+        self.assertIn("done", self.window.statusBar().currentMessage())
+        set_language("en")
+        self.window._on_language_changed("en")
+        try:
+            self.assertEqual("Job done.", self.window.statusBar().currentMessage())
+        finally:
+            set_language("zh")
+            self.window._on_language_changed("zh")
+
+    def test_wrapped_text_is_not_clipped(self):
+        # A wrapped label reports one line as its minimum unless height-for-width
+        # is enabled, which silently cut the last line of the hint sentences.
+        for label in (self.window.correction.axis_hint, self.window.correction.hint_label,
+                      self.window.results.summary_label, self.window.settings.about_label):
+            self.assertTrue(label.sizePolicy().hasHeightForWidth(), label.text()[:24])
 
 
 if __name__ == "__main__":
