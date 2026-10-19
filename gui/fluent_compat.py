@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QFrame,
     QGraphicsOpacityEffect,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -78,6 +79,8 @@ __all__ = [
     "TextEdit",
     "Theme",
     "TransparentToolButton",
+    "cell_grid",
+    "grid_holder",
     "isDarkTheme",
     "qconfig",
     "setTheme",
@@ -428,8 +431,28 @@ class SettingField(QWidget):
         return self._control_widget
 
 
-class CardWidget(QFrame):
+def cell_grid(cells, columns: int) -> QGridLayout:
+    """Pack cells sideways into columns, filling left to right row by row."""
+    grid = QGridLayout()
+    grid.setHorizontalSpacing(24)
+    grid.setVerticalSpacing(10)
+    for index, cell in enumerate(cells):
+        row, column = divmod(index, columns)
+        grid.addWidget(cell, row, column)
+    # Columns take their natural width and the slack collects at the end:
+    # squeezing a caption below its width is what forces it onto two lines.
+    grid.setColumnStretch(columns, 1)
+    return grid
 
+
+def grid_holder(cells, columns: int, parent) -> QWidget:
+    """A grid inside a widget, for containers that adopt widgets, not layouts."""
+    holder = QWidget(parent)
+    holder.setLayout(cell_grid(cells, columns))
+    return holder
+
+
+class CardWidget(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("compatCard")

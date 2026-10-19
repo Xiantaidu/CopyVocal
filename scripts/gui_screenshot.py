@@ -41,12 +41,11 @@ def main() -> int:
     window.stage_list.setVisible(True)
     save(window, application, "gui_screenshot.png")
 
-    for expander in (window.correction.run_expander, window.correction.advanced_expander,
-                     window.correction.command_expander, window.correction.log_expander):
+    for expander in (window.options.run_expander, window.options.advanced_expander):
         expander.expand()
+    window.navigationInterface.setCurrentItem(window.settings.objectName())
     save(window, application, "gui_screenshot_expanded.png")
-    for expander in (window.correction.run_expander, window.correction.advanced_expander,
-                     window.correction.command_expander, window.correction.log_expander):
+    for expander in (window.options.run_expander, window.options.advanced_expander):
         expander.collapse()
 
     window.navigationInterface.setCurrentItem(window.results.objectName())

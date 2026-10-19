@@ -154,8 +154,6 @@ class JobRequest:
 
     def argv(self) -> list[str]:
         """Command-line arguments for scripts/copyvocal_cli.py."""
-        # Raw text is passed through, so an empty field stays visibly empty in the
-        # command preview instead of turning into the current directory.
         arguments = ["--config", str(self.config_path()),
                      "--teacher", self.teacher.strip(), "--student", self.student.strip(),
                      "--output", self.output,
@@ -186,10 +184,6 @@ class JobRequest:
         if self.skip_analysis:
             arguments.append("--skip-analysis")
         return arguments
-
-    def command_line(self) -> str:
-        parts = ['run.bat', *(f'"{item}"' if " " in item else item for item in self.argv())]
-        return " ".join(parts)
 
     def to_prefs(self) -> dict:
         values = asdict(self)

@@ -11,7 +11,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "nav_settings": {"zh": "设置", "en": "Settings"},
 
     "card_recordings": {"zh": "录音文件", "en": "Recordings"},
-    "card_axes": {"zh": "校正方式", "en": "Correction"},
+    "card_axes": {"zh": "校正设定", "en": "Correction settings"},
     "card_options": {"zh": "运行选项", "en": "Run options"},
     "card_progress": {"zh": "运行", "en": "Run"},
     "card_results": {"zh": "结果", "en": "Results"},
@@ -19,7 +19,6 @@ _STRINGS: dict[str, dict[str, str]] = {
     "card_about": {"zh": "关于", "en": "About"},
     "expander_run_modes": {"zh": "更多运行方式", "en": "More run modes"},
     "expander_advanced": {"zh": "分析参数（通常无需修改）", "en": "Analysis parameters (usually unchanged)"},
-    "expander_command": {"zh": "等价的命令行", "en": "Equivalent command line"},
     "expander_log": {"zh": "运行日志", "en": "Run log"},
     "switch_on": {"zh": "开", "en": "On"},
     "switch_off": {"zh": "关", "en": "Off"},
@@ -57,6 +56,10 @@ _STRINGS: dict[str, dict[str, str]] = {
     "tooltip_vocoder": {
         "zh": "auto 在有 CUDA 时使用 GPU，否则使用 CPU。",
         "en": "auto uses the GPU when CUDA is available, otherwise the CPU.",
+    },
+    "tooltip_language": {
+        "zh": "录音本身的语言，决定歌词识别与分词所用的模型。",
+        "en": "The language of the recordings, which selects the lyric and alignment models.",
     },
     "tooltip_check_game": {
         "zh": "用 GAME 额外提取音符，写入 MIDI 供检视；不影响校正结果。",

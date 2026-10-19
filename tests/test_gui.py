@@ -570,25 +570,26 @@ class WindowSmokeTests(unittest.TestCase):
         self.assertFalse(self.window.cancel_button.isEnabled())
         self.assertTrue(self.window.run_button.isEnabled())
 
-    def test_japanese_selection_reaches_command_preview(self):
+    def test_japanese_selection_reaches_the_collected_request(self):
         self.assertGreaterEqual(self.window.language_combo.findText("ja"), 0)
         self.window.language_combo.setCurrentText("ja")
-        self.assertIn("--language ja", self.window.command_label.text())
+        self.assertEqual(self.window._collect().language, "ja")
 
-    def test_command_preview_matches_the_collected_options(self):
+    def test_collected_options_reach_the_request(self):
         self.window.teacher_edit.setText(r"D:\a\teacher.wav")
         self.window.student_edit.setText(r"D:\a\student.wav")
         self.window.language_combo.setCurrentText("en")
         self.window.experiments_check.setChecked(True)
-        preview = self.window.command_label.text()
-        self.assertIn("--teacher D:\\a\\teacher.wav", preview)
-        self.assertIn("--language en", preview)
-        self.assertIn("--experiments", preview)
-        self.assertIn("--config", preview)
-        # The preview is the equivalent run.bat call, not the raw interpreter argv.
-        self.assertTrue(preview.startswith("run.bat"))
+        request = self.window._collect()
+        self.assertEqual(request.teacher, r"D:\a\teacher.wav")
+        self.assertEqual(request.language, "en")
+        self.assertTrue(request.experiments)
+        argv = request.argv()
+        self.assertIn("--teacher", argv)
+        self.assertIn(r"D:\a\teacher.wav", argv)
+        self.assertIn("--config", argv)
 
-    def test_correction_axes_are_independent_and_previewed(self):
+    def test_correction_axes_are_independent(self):
         window = self.window
         # The window restores the user's stored preferences, so pin the states
         # under test instead of asserting whatever a previous session saved.
@@ -596,20 +597,20 @@ class WindowSmokeTests(unittest.TestCase):
         window.timing_check.setChecked(True)
         window.pitch_combo.setCurrentIndex(T.PITCH_MODE_VALUES.index("off"))
         window.pitch_map_check.setChecked(False)
-        preview = window.command_label.text()
-        self.assertIn("--change-timing", preview)
-        self.assertIn("--pitch-mode off", preview)
-        self.assertIn("--no-map-teacher-pitch", preview)
+        request = window._collect()
+        self.assertTrue(request.change_timing)
+        self.assertEqual(request.pitch_mode, "off")
+        self.assertFalse(request.map_teacher_pitch)
         # Turning one axis off must not disturb the others.
         window.timing_check.setChecked(False)
         self.assertFalse(window.timing_check.isChecked())
         self.assertEqual(window._pitch_mode(), "off")
-        self.assertIn("--no-change-timing", window.command_label.text())
+        self.assertFalse(window._collect().change_timing)
         # Every pitch mode stays selectable in either timing state, because the
         # three axes are independent.
         window.pitch_combo.setCurrentIndex(T.PITCH_MODE_VALUES.index("adaptive"))
         self.assertEqual(window._pitch_mode(), "adaptive")
-        self.assertIn("--pitch-mode adaptive", window.command_label.text())
+        self.assertEqual(window._collect().pitch_mode, "adaptive")
         self.assertFalse(window.timing_check.isChecked())
 
     def test_the_contour_checkbox_is_enabled_wherever_there_is_a_contour_to_choose(self):
@@ -626,7 +627,9 @@ class WindowSmokeTests(unittest.TestCase):
     def test_quoting_keeps_paths_with_spaces_together(self):
         request = JobRequest(teacher=r"D:\my songs\teacher.wav", student=r"D:\my songs\student.wav",
                              output=r"D:\my songs\out")
-        self.assertIn(r'--teacher "D:\my songs\teacher.wav"', request.command_line())
+        argv = request.argv()
+        self.assertIn(r"D:\my songs\teacher.wav", argv)
+        self.assertIn(r"D:\my songs\student.wav", argv)
 
     def test_conflicting_options_are_mutually_disabled(self):
         self.window.analyze_check.setChecked(True)
@@ -731,8 +734,12 @@ class ProgressiveDisclosureTests(unittest.TestCase):
         self.addCleanup(self.window.deleteLater)
 
     def test_secondary_sections_start_collapsed(self):
-        for name in ("run_expander", "advanced_expander", "command_expander", "log_expander"):
-            self.assertFalse(getattr(self.window.correction, name).isExpanded(), name)
+        for expander in (self.window.options.run_expander, self.window.options.advanced_expander):
+            self.assertFalse(expander.isExpanded())
+
+    def test_the_log_is_never_folded_away(self):
+        # The log is the only place a running job explains itself, so it stays open.
+        self.assertTrue(self.window.log_view.isVisibleTo(self.window.correction))
 
     def test_switches_show_on_off_rather_than_their_caption(self):
         switch = self.window.game_check
@@ -746,7 +753,7 @@ class ProgressiveDisclosureTests(unittest.TestCase):
         self.assertEqual(self.window.stage_list.count(), 6)
 
     def test_expanding_a_section_reveals_its_controls(self):
-        expander = self.window.correction.advanced_expander
+        expander = self.window.options.advanced_expander
         expander.expand()
         self.assertTrue(expander.isExpanded())
         self.assertTrue(self.window.chunk_spin.isVisibleTo(expander))
@@ -816,10 +823,11 @@ class LayoutCompositionTests(unittest.TestCase):
 
     def test_the_correction_axes_share_one_row_of_their_own_card(self):
         # A misplaced switch once drew on top of the card title, and the axes were
-        # stacked as three full-width rows; they belong side by side in one card.
+        # stacked as full-width rows; they belong side by side in one card.
         from gui.fluent_compat import CardWidget
         cards = self.window.correction.view.findChildren(CardWidget)
-        axes = (self.window.timing_check, self.window.pitch_combo, self.window.pitch_map_check)
+        axes = (self.window.timing_check, self.window.pitch_combo, self.window.pitch_map_check,
+                self.window.language_combo)
         for widget in axes:
             owner = self._cell_of(widget)
             while owner is not None and not isinstance(owner, CardWidget):
@@ -830,12 +838,23 @@ class LayoutCompositionTests(unittest.TestCase):
             cell = self._cell_of(widget)
             rows = {grid.getItemPosition(i)[0] for i in range(grid.count())
                     if grid.itemAt(i).widget() is cell}
-            self.assertEqual(rows, {0}, "the three correction axes must share one row")
+            self.assertEqual(rows, {0}, f"{widget} must share the correction row")
+
+    def test_the_run_options_live_on_the_settings_page(self):
+        # The options card is mounted in settings, not correction, and both read the
+        # same instance, so what the page shows is what the job will use.
+        for widget in (self.window.onnx_combo, self.window.vocoder_combo,
+                       self.window.game_check, self.window.verify_check):
+            page = widget
+            while page is not None and page.objectName() != "settingsInterface":
+                page = page.parentWidget()
+            self.assertIsNotNone(page, f"{widget} is not on the settings page")
+        self.assertIs(self.window.settings.options, self.window.correction.options)
 
     def test_the_run_options_are_packed_sideways(self):
         # The devices and the two top-level toggles each fill one row, and no two
         # settings share a cell.
-        for group in ((self.window.onnx_combo, self.window.vocoder_combo, self.window.language_combo),
+        for group in ((self.window.onnx_combo, self.window.vocoder_combo),
                       (self.window.game_check, self.window.verify_check)):
             cells = [self._cell_of(w) for w in group]
             self.assertEqual(len({id(c) for c in cells}), len(cells))

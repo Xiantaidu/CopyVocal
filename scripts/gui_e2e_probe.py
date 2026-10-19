@@ -25,7 +25,9 @@ def main() -> int:
     window.game_check.setChecked(False)
     window.experiments_check.setChecked(True)
     window.verify_check.setChecked(True)
-    print("preview:", window.command_label.text()[:160], "...")
+    request = window._collect()
+    print("request:", request.language, "|", request.onnx_device, "|", request.vocoder_device,
+          "| experiments", request.experiments, "| verify", request.verify)
 
     loop = QEventLoop()
     outcome: dict = {}

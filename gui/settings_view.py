@@ -6,19 +6,21 @@ from PySide6.QtWidgets import QGridLayout, QVBoxLayout, QWidget
 from gui.fluent_compat import (BodyLabel, CardWidget, ComboBox, HintLabel, ScrollArea, SubtitleLabel,
                                Theme, setTheme)
 from gui.i18n import tr
+from gui.run_options import RunOptionsCard
 
 
 class SettingsInterface(ScrollArea):
-    """Appearance and about: theme, interface language, version."""
+    """Appearance, run options and about: theme, interface language, version."""
 
     languageChanged = Signal(str)
     themeChanged = Signal(str)
 
-    def __init__(self, version: str = "", parent=None) -> None:
+    def __init__(self, version: str = "", options: RunOptionsCard | None = None, parent=None) -> None:
         super().__init__(parent=parent)
         self.setObjectName("settingsInterface")
         self._tr_bindings: list = []
         self._version = version
+        self.options = options if options is not None else RunOptionsCard(self)
         self._build()
 
     def _build(self) -> None:
@@ -58,6 +60,8 @@ class SettingsInterface(ScrollArea):
         grid.setColumnStretch(4, 1)
         layout.addLayout(grid)
         self.vBoxLayout.addWidget(appearance)
+
+        self.vBoxLayout.addWidget(self.options)
 
         about, about_layout = self._card("card_about")
         self.about_label = HintLabel(tr("about_body"), about)

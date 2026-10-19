@@ -10,6 +10,7 @@ from gui.fluent_compat import FluentIcon, FluentWindow, NavigationItemPosition
 from gui.i18n import set_language, tr
 from gui.job import PREFS_PATH, JobRequest
 from gui.results_view import ResultsInterface
+from gui.run_options import RunOptionsCard
 from gui.settings_view import SettingsInterface
 
 
@@ -21,9 +22,12 @@ class MainWindow(FluentWindow):
         self.request = JobRequest.from_defaults()
         self._load_prefs()
         set_language(self._prefs_language())
-        self.correction = CorrectionInterface(self)
+        # One options card, mounted on the settings page and read by the page that
+        # builds the job, so the two can never disagree about what will run.
+        self.options = RunOptionsCard(self)
+        self.correction = CorrectionInterface(self.options, self)
         self.results = ResultsInterface(self)
-        self.settings = SettingsInterface(version, self)
+        self.settings = SettingsInterface(version, self.options, self)
         self.runner = self.correction.runner
         self.setWindowTitle(tr("window_title"))
         self._build_navigation()
@@ -82,6 +86,7 @@ class MainWindow(FluentWindow):
         self.setWindowTitle(tr("window_title"))
         self._retranslate_navigation()
         self.correction.retranslate_ui()
+        self.options.retranslate_ui()
         self.results.retranslate_ui()
         self.settings.retranslate_ui()
         self._render_status()
@@ -163,11 +168,11 @@ class MainWindow(FluentWindow):
 
     @property
     def onnx_combo(self):
-        return self.correction.onnx_combo
+        return self.options.onnx_combo
 
     @property
     def vocoder_combo(self):
-        return self.correction.vocoder_combo
+        return self.options.vocoder_combo
 
     @property
     def language_combo(self):
@@ -175,31 +180,31 @@ class MainWindow(FluentWindow):
 
     @property
     def game_check(self):
-        return self.correction.game_check
+        return self.options.game_check
 
     @property
     def experiments_check(self):
-        return self.correction.experiments_check
+        return self.options.experiments_check
 
     @property
     def verify_check(self):
-        return self.correction.verify_check
+        return self.options.verify_check
 
     @property
     def verify_timing_check(self):
-        return self.correction.verify_timing_check
+        return self.options.verify_timing_check
 
     @property
     def analyze_check(self):
-        return self.correction.analyze_check
+        return self.options.analyze_check
 
     @property
     def skip_check(self):
-        return self.correction.skip_check
+        return self.options.skip_check
 
     @property
     def fallback_check(self):
-        return self.correction.fallback_check
+        return self.options.fallback_check
 
     @property
     def timing_check(self):
@@ -215,23 +220,23 @@ class MainWindow(FluentWindow):
 
     @property
     def chunk_spin(self):
-        return self.correction.chunk_spin
+        return self.options.chunk_spin
 
     @property
     def context_spin(self):
-        return self.correction.context_spin
+        return self.options.context_spin
 
     @property
     def quality_spin(self):
-        return self.correction.quality_spin
+        return self.options.quality_spin
 
     @property
     def stretch_spin(self):
-        return self.correction.stretch_spin
+        return self.options.stretch_spin
 
     @property
     def floor_spin(self):
-        return self.correction.floor_spin
+        return self.options.floor_spin
 
     @property
     def run_button(self):
@@ -244,10 +249,6 @@ class MainWindow(FluentWindow):
     @property
     def progress_bar(self):
         return self.correction.progress_bar
-
-    @property
-    def command_label(self):
-        return self.correction.command_label
 
     @property
     def stage_list(self):
