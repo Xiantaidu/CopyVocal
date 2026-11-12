@@ -27,7 +27,6 @@ class AlignmentTests(unittest.TestCase):
         self.assertAlmostEqual(plan["metrics"]["lyric_coverage"], 1.0)
         self.assertAlmostEqual(map_times(plan, [0.54])[0], 0.57)
         self.assertEqual(plan["time_map"]["direction"], "teacher_to_student")
-        # Standard JSON cannot encode NaN/Infinity. Reports must stay portable.
         json.dumps(plan, allow_nan=False)
 
     def test_insertions_and_missing_words_are_not_fabricated(self):

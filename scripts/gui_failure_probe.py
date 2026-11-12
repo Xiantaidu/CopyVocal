@@ -26,7 +26,7 @@ def main() -> int:
         (output / name).unlink(missing_ok=True)
     blocked = ROOT / "outputs" / "blocked_file.tmp"
     blocked.write_text("not audio", encoding="utf-8")
-    window.teacher_edit.setText(str(blocked))       # exists, but is not decodable audio
+    window.teacher_edit.setText(str(blocked))
     window.student_edit.setText(str(ROOT / "Student.wav"))
     window.output_edit.setText(str(output))
     window.game_check.setChecked(False)

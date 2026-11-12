@@ -6,7 +6,7 @@ from typing import List, Optional, Sequence, Tuple
 QUARTER = 705_600_000             # one quarter note (the beat)
 GRID = 22_050_000                 # QUARTER // 32, the correction grid (a 128th note)
 BAND = 16                         # search band for durations / windows (±16 columns)
-NEG_INF = -1.0e10                 # DP initial value
+NEG_INF = -1.0e10
 FAIL_THRESHOLD = -1.0e9           # best score below this → failure
 TICKS_PER_QUARTER = QUARTER
 
@@ -33,7 +33,6 @@ def metric_bonus(abs_pos: int, lam: float) -> float:
 
 
 def metric_level(abs_pos: int) -> str:
-    """Debug helper: name of the beat level a position sits on."""
     p = abs_pos % QUARTER
     if p == 0:
         return "beat"
@@ -51,8 +50,8 @@ def metric_level(abs_pos: int) -> str:
 @dataclass
 class Result:
     ok: bool
-    notes: List[Tuple[int, int]] = field(default_factory=list)   # new (start, end)
-    detail: List[dict] = field(default_factory=list)             # per-record debug info
+    notes: List[Tuple[int, int]] = field(default_factory=list)
+    detail: List[dict] = field(default_factory=list)
     message: str = ""
 
 
@@ -67,18 +66,16 @@ def smart_quantize(
     if not notes:
         return Result(ok=False, message="empty selection")
 
-    # 1. Record chain (sort + gap records)
     order = sorted(range(len(notes)), key=lambda i: notes[i][0])
     records: List[Tuple[int, int, Optional[int]]] = []
     for i in order:
         s, e = notes[i]
-        e = max(s, e)                       # clamp end to >= start
+        e = max(s, e)
         if records and s > records[-1][1]:
-            records.append((records[-1][1], s, None))   # gap record
+            records.append((records[-1][1], s, None))
         records.append((s, e, i))
     R = len(records)
 
-    # 2. Anchor + total column count
     first = records[0][0]
     if first >= 0:
         anchor = (first + GRID // 2) // GRID * GRID
@@ -96,7 +93,7 @@ def smart_quantize(
         return Result(ok=False, message="degenerate span")
 
     # Legal column windows (±16-column band, clipped to [0, col_count))
-    lo = [max(0, r0 // GRID - BAND) for r0, _ in rel]           # python // = floor
+    lo = [max(0, r0 // GRID - BAND) for r0, _ in rel]
     hi = [min(col_count, r1 // GRID + BAND) for _, r1 in rel]
     hi = [max(l, h) for l, h in zip(lo, hi)]
 
@@ -110,7 +107,7 @@ def smart_quantize(
         wlo, whi = lo[r], hi[r]
         dcols = dur_ticks[r] // GRID
         j_lo = max(1, dcols - BAND)
-        j_hi = dcols + BAND                                     # exclusive
+        j_hi = dcols + BAND
         for c in range(wlo, whi):
             if r == 0:
                 if c == 0:
@@ -130,7 +127,7 @@ def smart_quantize(
             for j in range(j_lo, j_hi):
                 scol = c - j + 1
                 if scol < wlo:
-                    break                                       # start column shrinks as j grows
+                    break
                 cand = S0[r].get(scol, NEG_INF)
                 if cand <= NEG_INF:
                     continue
@@ -144,7 +141,6 @@ def smart_quantize(
             S1[r][c] = s1 if s1 > NEG_INF else NEG_INF
             BP[r][c] = best_start
 
-    # 6. Free final end: backtrack from the best cell of the last row
     last_col, final = max(S1[R - 1].items(), key=lambda kv: kv[1])
     if final < FAIL_THRESHOLD:
         return Result(
@@ -160,9 +156,8 @@ def smart_quantize(
         if sc is None:
             return Result(ok=False, message="backtrack failed")
         start_cols[r] = sc
-        end_col = sc - 1                                       # end column of previous record
+        end_col = sc - 1
 
-    # 7. Write-back (head-to-tail; last end = chosen by the DP)
     new_pairs = []
     for r in range(R):
         start = anchor + GRID * start_cols[r]
@@ -179,7 +174,7 @@ def smart_quantize(
             out[idx] = new_pairs[r]
         detail.append({
             "record": r,
-            "note_index": idx,                     # None = gap record
+            "note_index": idx,
             "orig": records[r][:2],
             "new": new_pairs[r],
             "start_col": start_cols[r],

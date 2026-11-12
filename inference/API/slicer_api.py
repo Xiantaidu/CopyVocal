@@ -85,7 +85,6 @@ def _merge_short_segments(chunks: list, sr: int, min_len_sec: float, max_len_sec
         else:
             merged.append(dict(nxt))
 
-    # The tail may still contain a short segment, so try merging it backward.
     if len(merged) >= 2:
         last = merged[-1]
         last_dur = _segment_duration_sec(last, sr)
@@ -100,7 +99,6 @@ def _merge_short_segments(chunks: list, sr: int, min_len_sec: float, max_len_sec
                 merged[-2] = _merge_segments(prev, last, sr)
                 merged.pop()
 
-    # Recurse because merges can still leave short segments behind.
     any_short = any(_segment_duration_sec(c, sr) < min_len_sec for c in merged)
     if any_short and len(merged) < len(chunks):
         merged = _merge_short_segments(merged, sr, min_len_sec, max_len_sec)

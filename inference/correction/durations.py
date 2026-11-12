@@ -108,7 +108,6 @@ def _absorb(duration: np.ndarray, kinds: list[str], energy: np.ndarray,
         indices = [index for index, kind in enumerate(kinds) if kind in group]
         if not indices:
             continue
-        # The quietest candidate leads, then the remainder is shared evenly.
         indices.sort(key=lambda index: float(energy[index]))
         while abs(remainder) > _TOLERANCE:
             room = [max(0.0, float(hard_upper[index]) - duration[index]) for index in indices]

@@ -50,15 +50,11 @@ class DurationBudgetTests(unittest.TestCase):
         self.assertAlmostEqual(info["residual_seconds"], 0.0, places=9)
 
     def test_a_window_with_no_non_consonant_material_is_refused(self):
-        # Nothing but a consonant cannot cover a longer target without stretching
-        # it, so the budget reports the window as infeasible instead.
         segments = [segment(0.0, 0.05, "consonant", native=0.05)]
         with self.assertRaises(DurationBudgetError):
             plan_segment_durations(segments, np.array([0.05]), 0.40)
 
     def test_consonants_are_never_used_to_absorb_a_remainder(self):
-        # Even with vowels present, a remainder too large for them is reported
-        # rather than passed to the consonant.
         segments = [segment(0.0, 0.20, "vowel", native=0.20),
                     segment(0.20, 0.25, "consonant", native=0.05)]
         with self.assertRaises(DurationBudgetError):
@@ -150,12 +146,10 @@ class ConstrainedMappingTests(unittest.TestCase):
         self.assertTrue(np.all(np.diff(mapped) > 0))
         self.assertAlmostEqual(float(mapped[0]), 0.0, places=6)
         self.assertAlmostEqual(float(mapped[-1]), 0.35, places=6)
-        # Every segment boundary lands at the target time its budget assigned.
         for boundary, planned in zip(info["boundaries"][1:-1], info["knot_target"][1:-1]):
             self.assertAlmostEqual(float(np.interp(planned, query, mapped)), boundary, places=3)
 
     def test_consonant_span_keeps_its_sung_seconds_in_the_final_mapping(self):
-        # The searched warp wants 150 ms of a 100 ms fricative; the budget refuses.
         segments = [segment(0.0, 0.10, "consonant", native=0.10),
                     segment(0.10, 0.40, "vowel", native=0.30)]
         query = np.linspace(0.0, 0.40, 801)

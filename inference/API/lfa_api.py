@@ -67,7 +67,6 @@ def _phoneme_tokens_to_romaji_moras(tokens):
         ("ny", "i"): "ni", ("hy", "i"): "hi",
         ("my", "i"): "mi", ("ry", "i"): "ri",
         ("by", "i"): "bi", ("py", "i"): "pi",
-        # Less common but useful canonicalizations.
         ("ty", "i"): "chi", ("ty", "u"): "chu", ("ty", "o"): "cho",
         ("dy", "i"): "ji", ("dy", "u"): "ju", ("dy", "o"): "jo",
     }

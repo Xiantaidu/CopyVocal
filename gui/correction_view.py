@@ -101,7 +101,6 @@ class CorrectionInterface(ScrollArea):
         self.vBoxLayout.addWidget(card)
 
     def _build_settings(self) -> None:
-        """The correction decisions, each on its own cell of one row."""
         card, layout = self._card("card_axes")
         self.timing_switch = self._switch(card, "check_timing")
         self.pitch_combo = ComboBox(card)
@@ -125,7 +124,6 @@ class CorrectionInterface(ScrollArea):
         self.vBoxLayout.addWidget(card)
 
     def _switch(self, parent, key: str) -> SwitchButton:
-        """One switch showing only its on/off state, registered for retranslation."""
         switch = SwitchButton(tr("switch_on"), parent)
         switch.setOffText(tr("switch_off"))
         switch.setChecked(False)
@@ -138,7 +136,6 @@ class CorrectionInterface(ScrollArea):
         switch.setOffText(tr("switch_off"))
 
     def _field(self, parent, key: str, control: QWidget, tip_key: str | None = None) -> QWidget:
-        """Caption above its control, so several fit side by side on one row."""
         field = SettingField(tr(key), control, parent)
         self._bind_tr(lambda field=field, key=key: field.setText(tr(key)))
         if tip_key:

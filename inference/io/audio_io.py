@@ -17,7 +17,7 @@ _STDOUT_BLOCK = 1 << 20
 
 
 class AudioLoadError(RuntimeError):
-    """Raised when the bundled ffmpeg fails to decode an audio file."""
+    pass
 
 
 def _find_ffmpeg() -> str:

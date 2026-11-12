@@ -43,7 +43,7 @@ def main() -> int:
         return 1
     print("job started; python processes before:", before)
     QTimer.singleShot(6000, window.runner.cancel)   # let analysis begin, then stop it
-    QTimer.singleShot(120_000, loop.quit)           # safety net
+    QTimer.singleShot(120_000, loop.quit)
     loop.exec()
 
     time.sleep(3)  # let taskkill finish reaping the tree

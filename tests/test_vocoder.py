@@ -67,8 +67,6 @@ class RendererTests(unittest.TestCase):
             {"teacher_start": 0.4, "teacher_end": 0.6, "mode": "mute", "status": "missing"},
             {"teacher_start": 0.6, "teacher_end": 1, "student_start": 1.1, "student_end": 1.8, "mode": "synthesize"},
         ]}
-        # Teacher mode with the contour is the teacher's contour in the teacher's
-        # register: the historical absolute behavior.
         wave, diagnostics = render_student(np.ones(88200, dtype=np.float32), teacher, student, plan,
                                           vocoder, pitch_mode="teacher", map_teacher_pitch=True)
         self.assertEqual(len(wave), 44101)
@@ -78,9 +76,6 @@ class RendererTests(unittest.TestCase):
         self.assertEqual(diagnostics["muted_region_count"], 1)
 
     def test_the_default_only_changes_the_timing_and_keeps_the_students_pitch(self):
-        # The pitch switch is off by default, so even a student who sings an
-        # octave below the teacher is left exactly as sung. Changing only the
-        # timing must not silently correct the pitch.
         vocoder = RecordingVocoder()
         student, teacher = analysis(88200, 220), analysis(44101, 440)
         plan = {"regions": [
@@ -99,8 +94,6 @@ class RendererTests(unittest.TestCase):
         self.assertEqual(diagnostics["muted_region_count"], 1)
 
     def test_adaptive_placement_keeps_the_students_register(self):
-        # Adaptive mode puts each word on the teacher's note level but keeps the
-        # melody where the student actually sings, an octave below the teacher.
         vocoder = RecordingVocoder()
         student, teacher = analysis(88200, 220), analysis(44101, 440)
         plan = {"regions": [

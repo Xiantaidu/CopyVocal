@@ -1,4 +1,3 @@
-# Usage: .\python\python.exe -X utf8 scripts\pitch_key_probe.py outputs\long_hard
 from __future__ import annotations
 
 import json

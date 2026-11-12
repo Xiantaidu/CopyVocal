@@ -53,7 +53,6 @@ def _normalize_lyric_language(language: str | None) -> str:
     return value
 
 
-# Language name passed to the Qwen ASR prompt for each pipeline language.
 QWEN_ASR_LANGUAGE_NAMES = {
     "ja": "Japanese",
     "zh": "Chinese",

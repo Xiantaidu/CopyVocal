@@ -9,7 +9,6 @@ DEFAULT_SLICE_MAX_SEC = 10.0
 
 
 def validate_slice_bounds(slice_min_sec: float, slice_max_sec: float) -> None:
-    """Validate user-facing slice duration settings."""
     if not SLICE_DURATION_MIN_SEC <= slice_min_sec <= SLICE_DURATION_MAX_SEC:
         raise ValueError(
             f"slice_min_sec must be within {SLICE_DURATION_MIN_SEC:.0f}-{SLICE_DURATION_MAX_SEC:.0f} seconds"
@@ -80,7 +79,6 @@ class PipelineConfig:
     cancel_checker: Optional[Callable[[], bool]] = None
 
     def to_kwargs(self) -> dict:
-        """Convert to dict for passing to auto_lyric_hybrid_pipeline."""
         return {
             "audio_path": self.audio_path,
             "output_filename": self.output_filename,

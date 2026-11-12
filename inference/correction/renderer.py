@@ -379,8 +379,6 @@ def render_student(
             # student's own material, so it keeps the student's own pitch.
             f0 = np.where(matched, target, np.where(student_voiced, student_f0, 0)).astype(np.float32)
     else:
-        # The student's own contour, moved by the register difference (zero when
-        # the student's register is the target).
         f0 = np.where(student_voiced,
                       shifted_f0(student_f0, pitch_plan["contour_shift_cents"]),
                       0).astype(np.float32)

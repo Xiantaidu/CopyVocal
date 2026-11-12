@@ -5,7 +5,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
-from PySide6.QtWidgets import (QAbstractItemView, QHBoxLayout, QHeaderView, QTableWidget,
+from PySide6.QtWidgets import (QAbstractItemView, QHBoxLayout, QHeaderView, QMessageBox, QTableWidget,
                                QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 
 from application.artifacts import ROOT
@@ -146,13 +146,16 @@ class ResultsInterface(ScrollArea):
                                self.stop_button.setText(tr("button_stop"))))
         self.open_report_button = PushButton(tr("button_open_report"), audio_card)
         self.open_output_button = PushButton(tr("button_open_output"), audio_card)
+        self.export_opentune_button = PushButton(tr("button_export_opentune"), audio_card)
         self._bind_tr(lambda: (self.open_report_button.setText(tr("button_open_report")),
-                               self.open_output_button.setText(tr("button_open_output"))))
+                               self.open_output_button.setText(tr("button_open_output")),
+                               self.export_opentune_button.setText(tr("button_export_opentune"))))
         for widget in (self.listening_label, self.audio_combo, self.play_button, self.stop_button):
             audio_layout.addWidget(widget)
         audio_layout.addStretch(1)
         audio_layout.addWidget(self.open_report_button)
         audio_layout.addWidget(self.open_output_button)
+        audio_layout.addWidget(self.export_opentune_button)
         self.vBoxLayout.addWidget(audio_card)
 
     def _refresh_table_titles(self) -> None:
@@ -189,10 +192,10 @@ class ResultsInterface(ScrollArea):
         self.audio_combo.currentIndexChanged.connect(self._pick_audio)
         self.open_report_button.clicked.connect(self._open_report)
         self.open_output_button.clicked.connect(self._open_output)
+        self.export_opentune_button.clicked.connect(self._export_opentune)
         self.player.errorOccurred.connect(self._on_player_error)
 
     def refresh(self, output: str) -> None:
-        """Read every artifact in the output directory into the panel."""
         path = Path(output.strip() or ROOT / "outputs")
         artifacts = JobArtifacts(path)
         headline, note = artifacts.summary()
@@ -210,6 +213,10 @@ class ResultsInterface(ScrollArea):
         self._reload_audio(artifacts)
         self.open_report_button.setEnabled(artifacts.report_path() is not None)
         self.open_output_button.setEnabled(path.is_dir())
+        required = ("job.json", "teacher.analysis.json", "student.analysis.json",
+                    "alignment.json", "target_pitch.npz")
+        self.export_opentune_button.setEnabled(path.is_dir()
+                                               and all((path / name).is_file() for name in required))
 
     @staticmethod
     def _summary_html(artifacts: JobArtifacts, headline: str, note: str) -> str:
@@ -276,6 +283,18 @@ class ResultsInterface(ScrollArea):
         path = Path(self._output_path())
         if path.is_dir():
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
+
+    def _export_opentune(self) -> None:
+        """Write <output>/opentune.cvf from the finished job's artifacts."""
+        from application.opentune_bundle import export_bundle
+
+        try:
+            summary = export_bundle(Path(self._output_path()))
+        except Exception as error:  # noqa: BLE001 - surfaced to the user verbatim
+            QMessageBox.warning(self, tr("dialog_export_opentune_failed"), str(error))
+            return
+        QMessageBox.information(self, tr("dialog_export_opentune_done"),
+                                tr("dialog_export_opentune_body", path=summary["bundle"]))
 
     def _output_path(self) -> str:
         return self._output.strip() or str(ROOT / "outputs")

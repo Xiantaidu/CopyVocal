@@ -97,7 +97,6 @@ _CONTROL_HEIGHT = 33
 # _SpinBoxMixin._init_spin_arrows.
 _QT_VERSION = tuple(int(part) for part in _pyside_version.split(".")[:2])
 
-# Accent palette, matching the Fluent theme colour the GUI shipped with.
 _ACCENT = "#009faa"
 _ACCENT_HOVER = "#00a7b3"
 _ACCENT_PRESSED = "#3eabb3"

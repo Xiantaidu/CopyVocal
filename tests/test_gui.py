@@ -117,7 +117,7 @@ class JobRequestTests(unittest.TestCase):
                                max_chunk_seconds=12.5, context_seconds=0.5,
                                minimum_alignment_quality=0.5, maximum_stretch=2.0, log_floor=1e-6,
                                include_game=False, allow_acoustic_fallback=True, experiments=True,
-                               verify=False, verify_timing=True)
+                               verify=False, verify_timing=True, export_opentune=True)
         argv = request.argv()
         for flag, value in (("--onnx-device", "cpu"), ("--vocoder-device", "cpu"), ("--language", "en"),
                             ("--max-chunk-seconds", "12.5"), ("--context-seconds", "0.5"),
@@ -125,7 +125,7 @@ class JobRequestTests(unittest.TestCase):
                             ("--log-floor", "1e-06")):
             self.assertEqual(argv[argv.index(flag) + 1], value, flag)
         for flag in ("--no-game", "--allow-acoustic-fallback", "--experiments", "--no-verify",
-                     "--verify-timing"):
+                     "--verify-timing", "--export-opentune"):
             self.assertIn(flag, argv)
         self.assertNotIn("--skip-analysis", argv)
         self.assertNotIn("--analyze-only", argv)
@@ -156,15 +156,12 @@ class JobRequestTests(unittest.TestCase):
         base = JobRequest.from_defaults()
         self.assertEqual(JobRequest.from_prefs({"change_pitch": True}, base).pitch_mode, "teacher")
         self.assertEqual(JobRequest.from_prefs({"change_pitch": False}, base).pitch_mode, "off")
-        # An explicit mode always wins over the legacy key.
         stored = {"change_pitch": True, "pitch_mode": "adaptive"}
         self.assertEqual(JobRequest.from_prefs(stored, base).pitch_mode, "adaptive")
         stored = {"change_pitch": True, "pitch_mode": "off"}
         self.assertEqual(JobRequest.from_prefs(stored, base).pitch_mode, "off")
 
     def test_an_unusable_pitch_mode_falls_back_to_off(self):
-        # A stale preferences file naming a mode this build does not have must not
-        # reach the pipeline as an unknown value.
         request = JobRequest.from_prefs({"pitch_mode": "louder"}, JobRequest.from_defaults())
         self.assertEqual(request.pitch_mode, "off")
 
@@ -174,7 +171,6 @@ class JobRequestTests(unittest.TestCase):
         self.assertFalse(stored["change_timing"])
         self.assertEqual(stored["pitch_mode"], "teacher")
         self.assertTrue(stored["map_teacher_pitch"])
-        # A stored config without the keys falls back to the dataclass defaults.
         defaults = JobRequest.from_prefs({}, JobRequest.from_defaults())
         self.assertTrue(defaults.change_timing)
         self.assertEqual(defaults.pitch_mode, "off")
@@ -193,15 +189,17 @@ class JobRequestTests(unittest.TestCase):
         self.assertEqual(argv[argv.index("--config") + 1], str(request.config_path()))
 
     def test_prefs_round_trip_ignores_unknown_and_invalid_values(self):
-        request = self.request(language="en", experiments=True, max_chunk_seconds=7.5)
+        request = self.request(language="en", experiments=True, export_opentune=True,
+                               max_chunk_seconds=7.5)
         values = request.to_prefs()
         values["unknown_key"] = 1
-        values["language"] = "fr"          # not a supported language
+        values["language"] = "fr"
         values["max_chunk_seconds"] = "wide"
         restored = JobRequest.from_prefs(values, JobRequest.from_defaults())
         self.assertEqual(restored.language, JobRequest.from_defaults().language)
         self.assertAlmostEqual(restored.max_chunk_seconds, JobRequest.from_defaults().max_chunk_seconds)
         self.assertTrue(restored.experiments)
+        self.assertTrue(restored.export_opentune)
         self.assertFalse(hasattr(restored, "unknown_key"))
 
     def test_suggested_output_follows_the_student_name(self):
@@ -317,7 +315,6 @@ class StageParsingTests(unittest.TestCase):
         self.assertFalse(PipelineRunner.is_stage_enabled("analysis", JobRequest(skip_analysis=True)))
 
     def test_analysis_only_never_marks_render_or_correspondence(self):
-        # An analysis-only job writes no alignment.json and renders nothing.
         self.announce(JobRequest(analyze_only=True))
         self.consume(WORKER_LOG)
         states = self.runner.stage_states()
@@ -326,8 +323,6 @@ class StageParsingTests(unittest.TestCase):
         self.assertEqual(states["render"], "skipped")
 
     def test_reused_analysis_starts_at_correspondence(self):
-        # With analysis skipped, correspondence is the first work the parent does,
-        # so it must already look active when the job begins.
         self.announce(JobRequest(skip_analysis=True))
         self.assertEqual(self.runner.stage_states()["analysis"], "skipped")
         self.assertEqual(self.runner.stage_states()["alignment"], "running")
@@ -352,7 +347,6 @@ class ResultsTests(unittest.TestCase):
                         {"teacher_text": "了", "student_text": "啊", "status": "substitution",
                          "mode": "synthesize", "quality": 0.48, "teacher_start": 1.0, "teacher_end": 1.5,
                          "reason": "possible_lyric_mismatch_or_asr_error"},
-                        # A plain silence region is omitted from the correspondence table.
                         {"teacher_text": "", "student_text": "", "status": "silence", "mode": "silence",
                          "quality": 1.0, "teacher_start": 0.4, "teacher_end": 1.0, "reason": "rest"}]})
         self.write("verification.json", {
@@ -452,7 +446,6 @@ class ResultsTests(unittest.TestCase):
 
     def test_corrupt_artifact_does_not_break_the_panel(self):
         (self.output / "alignment.json").write_text("{not json", encoding="utf-8")
-        # The unreadable file is skipped; values from the intact ones still show.
         values = dict(self.artifacts.metrics())
         self.assertNotIn("Planned lyric coverage", values)
         self.assertEqual(values[tr("row_teacher_voiced_coverage")], "97.85%")
@@ -463,8 +456,6 @@ class TranslationTests(unittest.TestCase):
     """The Chinese interface text must cover real artifacts without hiding any."""
 
     def test_unknown_sentences_are_shown_unchanged(self):
-        # A warning the interface has not been taught about must still be readable,
-        # so an unmatched sentence is returned verbatim rather than replaced.
         unknown = "A brand new warning that no translation table knows about."
         self.assertEqual(T.warning_text(unknown), unknown)
 
@@ -516,7 +507,6 @@ class TranslationTests(unittest.TestCase):
         for policy in ("none", "student_contour_student_register", "teacher_contour_student_register",
                        "student_contour_teacher_register", "teacher_contour_teacher_register"):
             self.assertNotEqual(T.policy_label(policy), policy, policy)
-        # An unrecognized value stays visible instead of becoming a blank cell.
         self.assertEqual(T.status_label("something_new"), "something_new")
 
     def test_value_carrying_warnings_keep_their_numbers(self):
@@ -533,8 +523,6 @@ class TranslationTests(unittest.TestCase):
         self.assertIn("7", text)
 
     def test_job_errors_are_translated_and_unknown_ones_kept(self):
-        # A failed job records its reason in job.json; the dialog must show it in
-        # Chinese, and must not silently drop a reason it does not recognize.
         self.assertEqual(T.job_error_text("Pitch analysis is missing; correction cannot run."),
                          "缺少音高分析，无法进行校正。")
         translated = T.job_error_text(
@@ -601,13 +589,10 @@ class WindowSmokeTests(unittest.TestCase):
         self.assertTrue(request.change_timing)
         self.assertEqual(request.pitch_mode, "off")
         self.assertFalse(request.map_teacher_pitch)
-        # Turning one axis off must not disturb the others.
         window.timing_check.setChecked(False)
         self.assertFalse(window.timing_check.isChecked())
         self.assertEqual(window._pitch_mode(), "off")
         self.assertFalse(window._collect().change_timing)
-        # Every pitch mode stays selectable in either timing state, because the
-        # three axes are independent.
         window.pitch_combo.setCurrentIndex(T.PITCH_MODE_VALUES.index("adaptive"))
         self.assertEqual(window._pitch_mode(), "adaptive")
         self.assertEqual(window._collect().pitch_mode, "adaptive")
@@ -660,7 +645,6 @@ class WindowSmokeTests(unittest.TestCase):
         self.window.refresh_results()
 
     def test_existing_output_is_reviewable_without_running_anything(self):
-        # Opening the window on a finished job must show it; the pipeline is untouched.
         self.window.output_edit.setText(str(ROOT / "outputs" / "short"))
         self.window.refresh_results()
         self.assertIn(tr("summary_corrected_prefix"), self.window.summary_label.text())
@@ -738,14 +722,12 @@ class ProgressiveDisclosureTests(unittest.TestCase):
             self.assertFalse(expander.isExpanded())
 
     def test_the_log_is_never_folded_away(self):
-        # The log is the only place a running job explains itself, so it stays open.
         self.assertTrue(self.window.log_view.isVisibleTo(self.window.correction))
 
     def test_switches_show_on_off_rather_than_their_caption(self):
         switch = self.window.game_check
         self.assertEqual((switch.getOnText(), switch.getOffText()),
                          (tr("switch_on"), tr("switch_off")))
-        # The caption beside the switch carries the meaning, never the state text.
         self.assertNotIn(tr("check_game"), (switch.getOnText(), switch.getOffText()))
 
     def test_stage_list_appears_only_once_a_job_starts(self):
@@ -852,8 +834,6 @@ class LayoutCompositionTests(unittest.TestCase):
         self.assertIs(self.window.settings.options, self.window.correction.options)
 
     def test_the_run_options_are_packed_sideways(self):
-        # The devices and the two top-level toggles each fill one row, and no two
-        # settings share a cell.
         for group in ((self.window.onnx_combo, self.window.vocoder_combo),
                       (self.window.game_check, self.window.verify_check)):
             cells = [self._cell_of(w) for w in group]

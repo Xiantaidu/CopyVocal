@@ -1,4 +1,3 @@
-# Usage: .\python\python.exe scripts\pitch_probe.py outputs\short
 from __future__ import annotations
 
 import json

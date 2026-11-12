@@ -130,8 +130,6 @@ class AcousticDynamicsTests(unittest.TestCase):
         self.assertEqual(report, [])
 
     def test_a_misordered_gap_is_still_rejected(self):
-        # The tolerance only forgives float noise; a genuinely inverted window is a
-        # broken plan and must not be silently ignored.
         transition = {**self.transitions[0], "gap_teacher_start": 0.7, "gap_teacher_end": 0.3}
         with self.assertRaises(ValueError):
             self.compute(transitions=[transition])

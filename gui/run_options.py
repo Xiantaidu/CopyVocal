@@ -45,7 +45,8 @@ class RunOptionsCard(CardWidget):
                                     self._field(self, "label_vocoder_device", self.vocoder_combo,
                                                 "tooltip_vocoder")], columns=2))
 
-        toggles = [self._switch_row(self, key) for key in ("check_game", "check_verify")]
+        toggles = [self._switch_row(self, key)
+                   for key in ("check_game", "check_verify", "check_export_opentune")]
         layout.addLayout(cell_grid(toggles, columns=2))
 
         self.run_expander = Expander(tr("expander_run_modes"), self)
@@ -69,7 +70,6 @@ class RunOptionsCard(CardWidget):
         self.changed.emit()
 
     def _build_advanced(self, layout) -> None:
-        """The numeric knobs, folded behind an expander."""
         defaults = JobRequest.from_defaults()
         self.advanced_expander = Expander(tr("expander_advanced"), self)
         self._bind_tr(lambda: self.advanced_expander.setTitle(tr("expander_advanced")))
@@ -105,7 +105,6 @@ class RunOptionsCard(CardWidget):
         return spin
 
     def _switch(self, parent, key: str) -> SwitchButton:
-        """One switch showing only its on/off state, registered for retranslation."""
         switch = SwitchButton(tr("switch_on"), parent)
         switch.setOffText(tr("switch_off"))
         switch.setChecked(False)
@@ -119,7 +118,6 @@ class RunOptionsCard(CardWidget):
         switch.setOffText(tr("switch_off"))
 
     def _field(self, parent, key: str, control: QWidget, tip_key: str | None = None) -> QWidget:
-        """Caption above its control, so several fit side by side on one row."""
         field = SettingField(tr(key), control, parent)
         self._bind_tr(lambda field=field, key=key: field.setText(tr(key)))
         if tip_key:
@@ -130,7 +128,6 @@ class RunOptionsCard(CardWidget):
         return field
 
     def _setting_row(self, parent, key: str, control: QWidget, tip_key: str | None = None) -> QWidget:
-        """Caption on the left, its control on the right, as in system settings."""
         row = SettingRow(tr(key), control, parent)
         self._bind_tr(lambda row=row, key=key: row.setText(tr(key)))
         if tip_key:
@@ -152,11 +149,12 @@ class RunOptionsCard(CardWidget):
         self.analyze_check.setEnabled(not skip)
         self.verify_timing_check.setEnabled(not analyze)
         self.experiments_check.setEnabled(not analyze)
+        self.export_opentune_check.setEnabled(not analyze)
         if analyze:
             self.verify_timing_check.setChecked(False)
+            self.export_opentune_check.setChecked(False)
 
     def collect(self, request: JobRequest) -> JobRequest:
-        """Write the displayed options into a request."""
         request.onnx_device = self.onnx_combo.currentData() or self.onnx_combo.currentText()
         request.vocoder_device = self.vocoder_combo.currentData() or self.vocoder_combo.currentText()
         request.include_game = self.game_check.isChecked()
@@ -165,6 +163,7 @@ class RunOptionsCard(CardWidget):
         request.verify_timing = self.verify_timing_check.isChecked()
         request.analyze_only = self.analyze_check.isChecked()
         request.skip_analysis = self.skip_check.isChecked()
+        request.export_opentune = self.export_opentune_check.isChecked()
         request.allow_acoustic_fallback = self.fallback_check.isChecked()
         request.max_chunk_seconds = self.chunk_spin.value()
         request.context_seconds = self.context_spin.value()
@@ -174,7 +173,6 @@ class RunOptionsCard(CardWidget):
         return request
 
     def apply(self, request: JobRequest) -> None:
-        """Show the options stored in a request."""
         self.onnx_combo.setCurrentIndex(max(0, self.onnx_combo.findData(request.onnx_device)))
         self.vocoder_combo.setCurrentIndex(max(0, self.vocoder_combo.findData(request.vocoder_device)))
         self.game_check.setChecked(request.include_game)
@@ -183,6 +181,7 @@ class RunOptionsCard(CardWidget):
         self.verify_timing_check.setChecked(request.verify_timing)
         self.analyze_check.setChecked(request.analyze_only)
         self.skip_check.setChecked(request.skip_analysis)
+        self.export_opentune_check.setChecked(request.export_opentune)
         self.fallback_check.setChecked(request.allow_acoustic_fallback)
         self.chunk_spin.setValue(request.max_chunk_seconds)
         self.context_spin.setValue(request.context_seconds)
@@ -214,6 +213,10 @@ class RunOptionsCard(CardWidget):
     @property
     def verify_timing_check(self) -> SwitchButton:
         return self._switches["check_verify_timing"]
+
+    @property
+    def export_opentune_check(self) -> SwitchButton:
+        return self._switches["check_export_opentune"]
 
     @property
     def analyze_check(self) -> SwitchButton:

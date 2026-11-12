@@ -8,7 +8,6 @@ from application.config import (
     validate_slice_bounds,
 )
 
-# Allow running this script directly from anywhere
 PROJECT_ROOT = pathlib.Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -379,7 +378,6 @@ def auto_lyric_hybrid_pipeline(
     asr_session=None,
     cancel_checker=None,
 ):
-    """Auto Lyric Hybrid ONNX pipeline."""
     ctx = _prepare_context(
         audio_path, output_filename, output_dir, output_formats,
         language, chinese_asr_engine, lyric_output_mode,

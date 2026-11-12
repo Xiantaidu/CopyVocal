@@ -202,10 +202,8 @@ def register_pitch_plan(regions: list[dict], allowed: list[bool], teacher_pitch:
     # must end in: shift = target level - chosen contour's own level. A negative
     # ``offset_cents`` means the student sings below the teacher.
     if teacher_contour:
-        # The teacher's contour starts at the teacher's level.
         plan["contour_shift_cents"] = offset_cents if student_register else 0.0
     else:
-        # The student's contour starts at the student's level.
         plan["contour_shift_cents"] = 0.0 if student_register else -offset_cents
     if per_word:
         _plan_note_shifts(plan, entries, comparable, offset_cents)

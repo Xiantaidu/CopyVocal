@@ -92,8 +92,6 @@ class VerificationArtifactTests(unittest.TestCase):
             json.dumps(report, allow_nan=False)
 
     def test_a_relative_pitch_target_adds_a_register_matched_comparison(self):
-        # The rendered melody sits in the student's register, so the teacher's
-        # absolute pitch is not the aimed reference and saying so is mandatory.
         rate, count = 16000, 16000
         teacher_pitch = track([440] * 100)
         actual = track([220] * 100)
@@ -116,10 +114,8 @@ class VerificationArtifactTests(unittest.TestCase):
                 report = verify_output(audio, teacher, plan, target, root=root, device="cpu")
             self.assertEqual(report["provenance"]["target_pitch_policy"],
                              "teacher_contour_student_register")
-            # The absolute comparison sees the intended octave as a 1200-cent error.
             self.assertAlmostEqual(
                 report["actual_vs_teacher"]["all_reference_frames"]["median_absolute_cents"], 1200, delta=1)
-            # The register-matched comparison is the aimed accuracy.
             relative = report["actual_vs_teacher_relative"]["all_reference_frames"]
             self.assertAlmostEqual(relative["median_absolute_cents"], 0, delta=1)
             self.assertIn("-1200.0 cents", report["actual_vs_teacher_relative"]["reference"])
@@ -251,7 +247,6 @@ class VerificationArtifactTests(unittest.TestCase):
             json.dumps(report, allow_nan=False)
 
     def test_the_teacher_clock_default_is_unchanged(self):
-        # A teacher-clock target still gets every comparison it always had.
         rate, count = 16000, 16000
         teacher = {"sample_rate": rate, "sample_count": count, "duration": 1.0,
                    "pitch": track([440] * 100)}

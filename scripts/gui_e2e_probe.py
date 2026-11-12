@@ -36,7 +36,7 @@ def main() -> int:
     if not window.runner.running:
         print("FAIL: the job did not start")
         return 1
-    QTimer.singleShot(600_000, loop.quit)  # safety net
+    QTimer.singleShot(600_000, loop.quit)
     loop.exec()
 
     print("outcome:", outcome.get("status"), "exit", outcome.get("exit_code"),

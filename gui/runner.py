@@ -14,7 +14,6 @@ from application.artifacts import ROOT
 from gui import text as T
 from gui.i18n import tr
 
-# Ordered stages as the pipeline runs them: (key, label).
 STAGES: tuple[tuple[str, str], ...] = T.stage_labels()
 
 # Percent shown when each stage has just finished; correspondence runs in-process
@@ -48,8 +47,8 @@ _DETAIL: tuple[tuple[re.Pattern, str], ...] = (
 # Chunk progress lines, with the shorter label the window shows.
 _CHUNK = re.compile(r"^(Transcribing|Aligning|Detecting notes in) (\w+) chunk (\d+)/(\d+)\.$")
 _CHUNK_LABELS = {"Transcribing": "Lyrics", "Aligning": "Phonemes", "Detecting notes in": "Notes"}
-# Log text that carries values is rebuilt in Chinese from the parts the window
-# already parses, so no worker message format has to change.
+# Log text that carries values is rebuilt for the active language from the
+# parts the window already parses, so no worker message format has to change.
 def _track(value: str) -> str:
     return T.stage_track_labels().get(value, value)
 _PITCH = re.compile(r"^Extracting continuous pitch from (\w+)\.$")
@@ -258,7 +257,7 @@ class PipelineRunner(QObject):
             self._emit_finish(-1, tr("status_failed"))
 
     def _on_finished(self, exit_code: int, status: QProcess.ExitStatus) -> None:
-        self._read()  # drain anything written just before exit
+        self._read()
         trailing = self._tail.strip()
         self._tail = ""
         if trailing:

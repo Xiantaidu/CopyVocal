@@ -1,6 +1,4 @@
 class Vocal2MidiError(Exception):
-    """Base exception for all Vocal2Midi-specific errors."""
-
     def __init__(self, message: str = "", *, details: str = ""):
         # Fold details into the message so user-facing tracebacks/dialogs carry them.
         super().__init__(f"{message}: {details}" if details else message)
@@ -8,20 +6,20 @@ class Vocal2MidiError(Exception):
 
 
 class ModelNotFoundError(Vocal2MidiError):
-    """Raised when a required model path does not exist or is invalid."""
+    pass
 
 
 class ASRError(Vocal2MidiError):
-    """Raised when the ASR subprocess fails or returns invalid output."""
+    pass
 
 
 class AlignmentError(Vocal2MidiError):
-    """Raised when forced alignment fails."""
+    pass
 
 
 class ExportError(Vocal2MidiError):
-    """Raised when format export fails."""
+    pass
 
 
 class CancellationError(Vocal2MidiError):
-    """Raised when the user cancels a running pipeline."""
+    pass

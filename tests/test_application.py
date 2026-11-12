@@ -167,8 +167,6 @@ class ApplicationIntegrationTests(unittest.TestCase):
         self.assertEqual(len([item for item in curves if item["stroke"] == "#7cd8ff"]), 2)
 
     def test_long_pitch_chart_preserves_a_uv_gap_between_downsampled_points(self):
-        # A short UV gap can fall between every globally sampled point.
-        # The review still needs separate curves on either side of that gap.
         count = 5000
         times = [index / count for index in range(count)]
         f0, voiced = [220.0] * count, [True] * count

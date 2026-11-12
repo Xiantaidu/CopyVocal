@@ -14,7 +14,6 @@ from inference.correction.register import (_sustained_cents,
 from inference.correction.renderer import render_student
 from test_vocoder import RecordingVocoder
 
-# Exactly seven semitones below the 440 Hz teacher level.
 LOW = 440.0 * 2 ** (-7 / 12)
 TEACHER_LEVELS = [440.0] * 3
 IN_TUNE = [LOW] * 3
@@ -61,9 +60,6 @@ class PolicyResolutionTests(unittest.TestCase):
         self.assertEqual(resolve_pitch_policy("adaptive", True), "teacher_contour_student_register")
 
     def test_the_contour_checkbox_only_applies_where_there_is_a_contour_to_choose(self):
-        # 'off' does not touch the pitch at all, so there is nothing for the
-        # checkbox to select and it must not change the policy. Every other mode
-        # offers a real choice.
         self.assertEqual(resolve_pitch_policy("off", False), resolve_pitch_policy("off", True))
         for mode in ("teacher", "adaptive"):
             self.assertNotEqual(resolve_pitch_policy(mode, False), resolve_pitch_policy(mode, True), mode)
@@ -95,8 +91,6 @@ class PolicyResolutionTests(unittest.TestCase):
                                        level_edges([(0, 1), (1, 2)], [LOW, LOW]), policy)
             target = "none" if policy == "none" else ("teacher" if mode == "teacher" else "student")
             self.assertEqual(plan["target_register"], target, policy)
-            # The checkbox is honoured wherever there is a contour to choose, and
-            # 'off' has none because it does not touch the pitch at all.
             wants_teacher_contour = map_teacher and mode != "off"
             self.assertEqual(plan["contour"], "teacher" if wants_teacher_contour else "student", policy)
             if policy == "none":
@@ -150,8 +144,8 @@ class SustainedNoteTests(unittest.TestCase):
         # because it is why per-word results carry their own measured error.
         word = np.r_[np.linspace(-200.0, 0.0, 17), np.full(13, 0.0)]
         level, _ = _sustained_cents(word)
-        self.assertLess(level, 0.0)                        # reads somewhere in the glide
-        self.assertGreater(level, -200.0)                  # but never a glide endpoint
+        self.assertLess(level, 0.0)
+        self.assertGreater(level, -200.0)
         self.assertGreater(abs(level), 5.0)
 
     def test_a_word_with_too_few_frames_does_not_have_a_peak_to_trust(self):
@@ -169,8 +163,6 @@ class SustainedNoteTests(unittest.TestCase):
 
 class RegisterPlanTests(unittest.TestCase):
     def test_a_consistent_register_difference_becomes_one_constant_move(self):
-        # Every region sits the same seven semitones below the teacher. With the
-        # student's contour and the teacher's register, the student moves up.
         teacher = level_edges([(0, 1), (1, 2)], [440.0, 440.0])
         student = level_edges([(0, 1), (1, 2)], [LOW, LOW])
         plan = register_pitch_plan(regions(2), [True, True], teacher, student,
@@ -217,8 +209,6 @@ class RegisterPlanTests(unittest.TestCase):
         self.assertEqual(plan["contour_shift_cents"], 0.0)
 
     def test_a_single_region_cannot_place_notes_either(self):
-        # Without a measured register there is no anchor to place a word against,
-        # so adaptive mode must leave the pitch alone rather than guess.
         plan = register_pitch_plan(regions(1), [True], level_edges([(0, 1)], [440.0]),
                                    level_edges([(0, 1)], [LOW]), "student_contour_student_register")
         self.assertFalse(plan["offset_available"])
@@ -254,8 +244,6 @@ class AdaptivePlacementTests(unittest.TestCase):
         self.assertEqual(PER_WORD_PLACEMENT_POLICIES, ("student_contour_student_register",))
 
     def test_an_in_tune_student_is_not_moved_at_all(self):
-        # The whole point of adaptive mode: singing the right melody lower is not
-        # an error, so no word is moved and the melody stays in the student's range.
         plan = register_pitch_plan(regions(3), [True] * 3,
                                    level_edges([(0, 1), (1, 2), (2, 3)], TEACHER_LEVELS),
                                    level_edges([(0, 1), (1, 2), (2, 3)], IN_TUNE),
@@ -302,8 +290,6 @@ class AdaptivePlacementTests(unittest.TestCase):
         self.assertIn("octave error", plan["regions"][1]["note_shift_reason"])
 
     def test_a_negligible_residual_is_not_applied(self):
-        # A few cents off is already on the note; correcting it would only detune a
-        # word that was fine.
         student_levels = [LOW, LOW * 2 ** (0.03 / 12), LOW]
         plan = register_pitch_plan(regions(3), [True] * 3,
                                    level_edges([(0, 1), (1, 2), (2, 3)], TEACHER_LEVELS),
@@ -420,13 +406,12 @@ class RendererOptionTests(unittest.TestCase):
         # timing-only job change the pitch.
         vocoder, _, diagnostics = self.render([LOW, LOW / 1.5, LOW])
         voiced = vocoder.last_f0[vocoder.last_f0 > 0]
-        # The low middle region is still present, so the spread did not collapse.
         self.assertGreater(float(np.max(voiced)) / float(np.min(voiced)), 1.2)
         self.assertEqual(diagnostics["register_pitch"]["contour_shift_cents"], 0.0)
 
     def test_timing_can_change_without_touching_pitch(self):
         vocoder, wave, diagnostics = self.render()
-        self.assertEqual(len(wave), 132300)          # the teacher's clock
+        self.assertEqual(len(wave), 132300)
         self.assertTrue(diagnostics["timing_changed"])
         # The synthesised pitch is the student's own, frame for frame. The renderer
         # is asked to re-render the same audio, so the expected track is whatever a
@@ -441,7 +426,7 @@ class RendererOptionTests(unittest.TestCase):
 
     def test_pitch_can_change_without_touching_timing(self):
         vocoder, wave, diagnostics = self.render(change_timing=False)
-        self.assertEqual(len(wave), 264600)          # the student's clock
+        self.assertEqual(len(wave), 264600)
         self.assertFalse(diagnostics["timing_changed"])
 
     def test_the_teacher_mode_moves_the_student_into_the_teachers_register(self):
@@ -459,8 +444,6 @@ class RendererOptionTests(unittest.TestCase):
         self.assertAlmostEqual(float(np.median(voiced)), 440.0, delta=1.0)
 
     def test_adaptive_placement_fixes_the_wrong_note_and_keeps_the_register(self):
-        # The adaptive promise end to end: the sharp middle word comes down onto
-        # the student's own note level, and the result stays in the student's range.
         vocoder, _, diagnostics = self.render(SHARP_MIDDLE, TEACHER_LEVELS, pitch_mode="adaptive")
         self.assertEqual(diagnostics["pitch_policy"], "student_contour_student_register")
         self.assertEqual(diagnostics["register_pitch"]["note_shift_applied_count"], 1)
@@ -468,9 +451,7 @@ class RendererOptionTests(unittest.TestCase):
         voiced = track > 0
         self.assertTrue(np.any(voiced))
         levels = np.percentile(track[voiced], [5, 95])
-        # Everything sits in the student's register, never up at the teacher's.
         self.assertLess(float(levels[1]), 440.0)
-        # And the three words now agree far more closely than the uncorrected take.
         self.assertLess(float(levels[1] / levels[0]), 1.12)
         uncorrected = RecordingVocoder()
         teacher, student, plan = self.fixture(SHARP_MIDDLE, TEACHER_LEVELS)
@@ -481,8 +462,6 @@ class RendererOptionTests(unittest.TestCase):
                            float(levels[1] / levels[0]) + 0.1)
 
     def test_adaptive_placement_leaves_an_in_tune_student_alone(self):
-        # The reported intent: singing the melody in one's own range is not an
-        # error, so adaptive mode must not drag the whole melody up.
         vocoder, _, diagnostics = self.render(IN_TUNE, TEACHER_LEVELS, pitch_mode="adaptive")
         self.assertEqual(diagnostics["register_pitch"]["note_shift_applied_count"], 0)
         voiced = vocoder.last_f0[vocoder.last_f0 > 0]
@@ -501,8 +480,6 @@ class RendererOptionTests(unittest.TestCase):
         return teacher, student, plan
 
     def test_adaptive_placement_keeps_the_students_own_contour_by_default(self):
-        # With the checkbox off the curve shape is the student's: the teacher's
-        # vibrato is not imported.
         vocoder = RecordingVocoder()
         teacher, student, plan = self.warbling_fixture()
         render_student(np.ones(264600, dtype=np.float32), teacher, student, plan, vocoder,
@@ -525,9 +502,7 @@ class RendererOptionTests(unittest.TestCase):
         self.assertEqual(diagnostics["register_pitch"]["placement"], "constant")
         self.assertEqual(diagnostics["register_pitch"]["note_shift_applied_count"], 0)
         voiced = vocoder.last_f0[vocoder.last_f0 > 0]
-        # The teacher's warble arrives: the student is no longer steady.
         self.assertGreater(float(np.percentile(voiced, 95) / np.percentile(voiced, 5)), 1.02)
-        # And it stays in the student's own register, an octave below the teacher.
         self.assertLess(float(np.percentile(voiced, 95)), 440.0)
 
     def test_the_contour_checkbox_changes_the_adaptive_render(self):
@@ -537,15 +512,11 @@ class RendererOptionTests(unittest.TestCase):
         self.assertEqual(first["pitch_policy"], "student_contour_student_register")
         self.assertEqual(second["pitch_policy"], "teacher_contour_student_register")
         self.assertFalse(np.allclose(without.last_f0, with_contour.last_f0))
-        # Both land in the student's own register, which is what adaptive mode is.
         for vocoder in (without, with_contour):
             voiced = vocoder.last_f0[vocoder.last_f0 > 0]
             self.assertLess(float(np.percentile(voiced, 95)), 440.0)
 
     def test_a_single_region_job_reports_that_no_register_was_established(self):
-        # 'teacher' with the student's own contour needs the measured difference to
-        # move by; with one region there is none, and the render must say that the
-        # move it was asked for did not happen.
         vocoder = RecordingVocoder()
         teacher, student, plan = self.fixture([LOW, LOW, LOW])
         plan["regions"] = plan["regions"][:1]

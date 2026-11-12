@@ -52,6 +52,8 @@ def main() -> int:
     parser.add_argument("--verify-timing", action="store_true", help="Remeasure output words with independent ASR/TiFA; adds model inference.")
     parser.add_argument("--allow-acoustic-fallback", action="store_true", default=config.get("allow_acoustic_fallback", False), help="Allow explicitly low-confidence activity-only timing.")
     parser.add_argument("--log-floor", type=float, default=config.get("vocoder_log_floor", 1e-5))
+    parser.add_argument("--export-opentune", action="store_true",
+                        help="Write <output>/opentune.cvf: an editable OpenTune CopyVocal bundle.")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     from application.copyvocal import run_job
@@ -65,7 +67,8 @@ def main() -> int:
                          context_seconds=args.context_seconds, min_quality=args.minimum_alignment_quality,
                          max_stretch=args.max_stretch, verify_timing=args.verify_timing,
                          change_timing=args.change_timing, pitch_mode=args.pitch_mode,
-                         map_teacher_pitch=args.map_teacher_pitch)
+                         map_teacher_pitch=args.map_teacher_pitch,
+                         export_opentune=args.export_opentune)
     except KeyboardInterrupt:
         logging.error("Processing cancelled.")
         return 130

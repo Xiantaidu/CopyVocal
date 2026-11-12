@@ -49,7 +49,7 @@ def run_job(teacher: Path, student: Path, output: Path, *, onnx_device: str = "d
             context_seconds: float = 0.75, min_quality: float = 0.35,
             max_stretch: float = 4.0, verify_timing: bool = False,
             change_timing: bool = True, pitch_mode: str = "off",
-            map_teacher_pitch: bool = False) -> dict:
+            map_teacher_pitch: bool = False, export_opentune: bool = False) -> dict:
     if language not in SUPPORTED_LANGUAGES:
         raise ValueError(f"Unsupported language: {language}. Choose from {', '.join(SUPPORTED_LANGUAGES)}.")
     teacher, student, output = teacher.resolve(), student.resolve(), output.resolve()
@@ -66,6 +66,7 @@ def run_job(teacher: Path, student: Path, output: Path, *, onnx_device: str = "d
                       "experiments": experiments, "verify": verify, "verify_timing": verify_timing,
                       "change_timing": change_timing, "pitch_mode": pitch_mode,
                       "map_teacher_pitch": map_teacher_pitch,
+                      "export_opentune": export_opentune,
                       "skip_analysis": skip_analysis},
            "stages": {}}
     write_json(output / "job.json", job)
@@ -183,6 +184,15 @@ def run_job(teacher: Path, student: Path, output: Path, *, onnx_device: str = "d
         job["status"] = "completed_with_unresolved" if unresolved else "completed"
         from application.report import write_report
         write_report(output, ta, sa, plan, job)
+        if export_opentune:
+            # The bundle is an editing hand-off, not a second render: it reuses
+            # the artifacts already written above.
+            from application.opentune_bundle import export_bundle
+            try:
+                job["stages"]["opentune_bundle"] = export_bundle(output)
+            except Exception as error:
+                job["stages"]["opentune_bundle"] = {"error": str(error)}
+                logging.exception("OpenTune bundle export failed.")
         logging.info("Saved corrected vocal: %s", output / "student.corrected.wav")
         return job
     except BaseException as error:
