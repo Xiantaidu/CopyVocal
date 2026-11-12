@@ -34,7 +34,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "button_stop": {"zh": "停止", "en": "Stop"},
     "button_open_report": {"zh": "打开报告", "en": "Open report"},
     "button_open_output": {"zh": "打开输出文件夹", "en": "Open output folder"},
-    "button_export_opentune": {"zh": "导出 OpenTune 工程包", "en": "Export OpenTune bundle"},
+    "button_export_copyvocal_file": {"zh": "导出 CopyVocal 文件", "en": "Export CopyVocal file"},
     "hint_inputs": {
         "zh": "把音频文件拖到窗口上，或用上面的按钮选择。输入应为分离后的、以单声部人声为主的录音；"
               "伴奏会干扰分析。",
@@ -77,9 +77,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "zh": "对输出音频再跑一次歌词识别与强制对齐，用来核对词边界；耗时较长。",
         "en": "Run lyric recognition and forced alignment again over the output to check word boundaries; slow.",
     },
-    "tooltip_check_export_opentune": {
-        "zh": "任务完成后写出 opentune.cvf，可直接在 OpenTune 中导入并继续编辑。",
-        "en": "Write opentune.cvf after the run so it can be opened and edited in OpenTune.",
+    "tooltip_check_export_copyvocal_file": {
+        "zh": "任务完成后写出 copyvocal.cvf，可在支持 .cvf 的编辑器中打开并继续编辑。",
+        "en": "Write copyvocal.cvf after the run so it can be opened and edited in a .cvf-capable editor.",
     },
     "tooltip_check_analyze_only": {
         "zh": "只生成分析文件，不合成音频。",
@@ -154,9 +154,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "zh": "重新测量输出词边界",
         "en": "Remeasure output word boundaries",
     },
-    "check_export_opentune": {
-        "zh": "同时导出 OpenTune 工程包 (.cvf)",
-        "en": "Also export an OpenTune bundle (.cvf)",
+    "check_export_copyvocal_file": {
+        "zh": "同时导出 CopyVocal 文件 (.cvf)",
+        "en": "Also export a CopyVocal file (.cvf)",
     },
     "check_analyze_only": {"zh": "只做分析（不合成）", "en": "Analyze only (no synthesis)"},
     "check_skip_analysis": {
@@ -468,14 +468,14 @@ _STRINGS: dict[str, dict[str, str]] = {
         "zh": "{error}\n\n日志页与输出目录中的 processing.log 记录了管线的输出。",
         "en": "{error}\n\nThe log tab and processing.log in the output directory record the pipeline output.",
     },
-    "dialog_export_opentune_done": {"zh": "已导出 OpenTune 工程包", "en": "OpenTune bundle exported"},
-    "dialog_export_opentune_body": {
+    "dialog_export_copyvocal_file_done": {"zh": "已导出 CopyVocal 文件", "en": "CopyVocal file exported"},
+    "dialog_export_copyvocal_file_body": {
         "zh": "已写入：\n{path}",
         "en": "Written to:\n{path}",
     },
-    "dialog_export_opentune_failed": {
-        "zh": "导出 OpenTune 工程包失败",
-        "en": "OpenTune bundle export failed",
+    "dialog_export_copyvocal_file_failed": {
+        "zh": "导出 CopyVocal 文件失败",
+        "en": "CopyVocal file export failed",
     },
     "bullet_item": {"zh": "• {item}", "en": "• {item}"},
 

@@ -46,7 +46,7 @@ class RunOptionsCard(CardWidget):
                                                 "tooltip_vocoder")], columns=2))
 
         toggles = [self._switch_row(self, key)
-                   for key in ("check_game", "check_verify", "check_export_opentune")]
+                   for key in ("check_game", "check_verify", "check_export_copyvocal_file")]
         layout.addLayout(cell_grid(toggles, columns=2))
 
         self.run_expander = Expander(tr("expander_run_modes"), self)
@@ -149,10 +149,10 @@ class RunOptionsCard(CardWidget):
         self.analyze_check.setEnabled(not skip)
         self.verify_timing_check.setEnabled(not analyze)
         self.experiments_check.setEnabled(not analyze)
-        self.export_opentune_check.setEnabled(not analyze)
+        self.export_copyvocal_file_check.setEnabled(not analyze)
         if analyze:
             self.verify_timing_check.setChecked(False)
-            self.export_opentune_check.setChecked(False)
+            self.export_copyvocal_file_check.setChecked(False)
 
     def collect(self, request: JobRequest) -> JobRequest:
         request.onnx_device = self.onnx_combo.currentData() or self.onnx_combo.currentText()
@@ -163,7 +163,7 @@ class RunOptionsCard(CardWidget):
         request.verify_timing = self.verify_timing_check.isChecked()
         request.analyze_only = self.analyze_check.isChecked()
         request.skip_analysis = self.skip_check.isChecked()
-        request.export_opentune = self.export_opentune_check.isChecked()
+        request.export_copyvocal_file = self.export_copyvocal_file_check.isChecked()
         request.allow_acoustic_fallback = self.fallback_check.isChecked()
         request.max_chunk_seconds = self.chunk_spin.value()
         request.context_seconds = self.context_spin.value()
@@ -181,7 +181,7 @@ class RunOptionsCard(CardWidget):
         self.verify_timing_check.setChecked(request.verify_timing)
         self.analyze_check.setChecked(request.analyze_only)
         self.skip_check.setChecked(request.skip_analysis)
-        self.export_opentune_check.setChecked(request.export_opentune)
+        self.export_copyvocal_file_check.setChecked(request.export_copyvocal_file)
         self.fallback_check.setChecked(request.allow_acoustic_fallback)
         self.chunk_spin.setValue(request.max_chunk_seconds)
         self.context_spin.setValue(request.context_seconds)
@@ -215,8 +215,8 @@ class RunOptionsCard(CardWidget):
         return self._switches["check_verify_timing"]
 
     @property
-    def export_opentune_check(self) -> SwitchButton:
-        return self._switches["check_export_opentune"]
+    def export_copyvocal_file_check(self) -> SwitchButton:
+        return self._switches["check_export_copyvocal_file"]
 
     @property
     def analyze_check(self) -> SwitchButton:

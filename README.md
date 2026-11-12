@@ -63,17 +63,18 @@ generated files side by side.
 > A full correction has exactly the teacher's sample count; identity and pitch-only
 > experiments keep the student's.
 
-**Editable OpenTune hand-off.** Add `--export-opentune` to also write
-`<output>\opentune.cvf`, a versioned bundle that OpenTune imports as an editable project
-(notes, original F0, target-F0 corrections and the teacher time grid) instead of a plain
-audio file. Existing outputs can be exported without re-running inference:
+**Editable hand-off (`.cvf`).** Add `--export-cvf` to also write
+`<output>\copyvocal.cvf`, a versioned document carrying the notes, the original F0, the
+target-F0 corrections and the teacher time grid, so an editor can continue from the
+correction instead of importing a flat audio file. Existing outputs can be exported
+without re-running inference:
 
 ```powershell
-python -m application.opentune_bundle ".\outputs\short"
+python -m application.copyvocal_file ".\outputs\short"
 ```
 
-See `D:\OpenTune-standalone\docs\copyvocal-import.md` for the import steps and the
-four-clock/zero-padding rules.
+The format is defined in `docs/copyvocal-bundle-v1.md`. Consumer-side import steps are
+outside this repository.
 
 **CPU-only run** (slower, no GPU required):
 
@@ -156,9 +157,9 @@ The GUI adds **no inference of its own**. It starts `scripts\copyvocal_cli.py` i
 process, replays its output, and reads the resulting JSON. Stopping a job kills the child and
 the workers it owns.
 
-**OpenTune hand-off in the GUI.** Enable **Also export an OpenTune bundle (.cvf)** in the
-run options to write `opentune.cvf` with the job. Finished jobs can also be exported on
-demand from the Results page with **Export OpenTune bundle**.
+**Editable hand-off in the GUI.** Enable **Also export a CopyVocal file (.cvf)** in the
+run options to write `copyvocal.cvf` with the job. Finished jobs can also be exported on
+demand from the Results page with **Export CopyVocal file**.
 
 It is deliberately explicit about the pipeline's limits:
 

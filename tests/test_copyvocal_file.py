@@ -9,7 +9,7 @@ import unittest
 import numpy as np
 
 from application.artifacts import write_json
-from application.opentune_bundle import build_bundle, export_bundle
+from application.copyvocal_file import build_bundle, export_bundle
 
 
 SAMPLE_RATE = 44100
@@ -119,12 +119,12 @@ def decode(array: dict, dtype: str) -> np.ndarray:
     return np.frombuffer(base64.b64decode(array), dtype=dtype)
 
 
-class OpenTuneBundleTests(unittest.TestCase):
+class CopyVocalFileTests(unittest.TestCase):
     def test_bundle_contract_and_time_grid(self):
         with tempfile.TemporaryDirectory() as directory:
             job = make_job(Path(directory), timing_changed=True, student_seconds=1.2)
             bundle, _ = build_bundle(job)
-            self.assertEqual(bundle["format"], "opentune.copyvocal-bundle")
+            self.assertEqual(bundle["format"], "copyvocal.file")
             self.assertEqual(bundle["formatVersion"], 1)
             self.assertAlmostEqual(bundle["clocks"]["projectSourceSeconds"],
                                    bundle["clocks"]["outputSeconds"])
@@ -135,7 +135,7 @@ class OpenTuneBundleTests(unittest.TestCase):
             self.assertEqual(len(original), frame_count)
             self.assertEqual(len(target), frame_count)
             self.assertEqual(len(decode(bundle["f0"]["original"]["voiced"], np.uint8)), frame_count)
-            # Target is zero wherever the student has no F0: OpenTune can only
+            # Target is zero wherever the student has no F0: v1 only
             # correct voiced source frames.
             self.assertTrue(np.all(target[original <= 0] == 0))
             self.assertGreater(float(target.max()), 0.0)
@@ -180,7 +180,7 @@ class OpenTuneBundleTests(unittest.TestCase):
 
     def test_vocoder_grid_target_is_resampled_without_holes(self):
         # CopyVocal's target pitch uses the vocoder hop (~11.6 ms), so a naive
-        # nearest-frame scatter left periodic zero frames on OpenTune's 10 ms
+        # nearest-frame scatter left periodic zero frames on the 10 ms
         # grid.  Interpolation must fill every voiced source frame.
         with tempfile.TemporaryDirectory() as directory:
             job = make_job(Path(directory), timing_changed=True, target_step=0.0116)

@@ -12,18 +12,18 @@ import numpy as np
 from application.artifacts import file_hash, read_json, write_json
 
 
-BUNDLE_FORMAT = "opentune.copyvocal-bundle"
+BUNDLE_FORMAT = "copyvocal.file"
 BUNDLE_VERSION = 1
 F0_HOP = 160
 F0_SAMPLE_RATE = 16000
 F0_STEP = F0_HOP / F0_SAMPLE_RATE
 _SAMPLE_RATE = 44100
 # CopyVocal's target pitch runs on the vocoder grid (~11.6 ms). Bridge at most
-# one missing output frame when resampling it onto OpenTune's 10 ms grid.
+# one missing output frame when resampling it onto the .cvf 10 ms grid.
 _TARGET_INTERP_MAX_GAP = 0.030
 # One- to three-frame pitch spikes at note seams are below the vocoder's time
 # resolution and are not audible in CopyVocal's rendered audio. A short median
-# over voiced runs keeps OpenTune's curve and render consistent with that audio.
+# over voiced runs keeps the exported curve and a consumer's render consistent with that audio.
 _TARGET_MEDIAN_WINDOW = 5
 
 
@@ -265,7 +265,7 @@ def _target_f0_grid(target: dict[str, np.ndarray] | None, frame_count: int,
             distance = unique_times[right[before_first]] - frame_times[before_first]
             result[before_first] = np.where(distance <= edge_step,
                                             unique_f0[right[before_first]], 0.0)
-    # OpenTune can only correct frames whose original F0 is voiced.
+    # v1 only corrects frames whose original F0 is voiced.
     result[original <= 0.0] = 0.0
     return result
 
@@ -628,7 +628,7 @@ def export_bundle(job_dir: str | Path, output_path: str | Path | None = None,
                   *, compute_hashes: bool = True) -> dict[str, Any]:
     job_dir = Path(job_dir).resolve()
     bundle, bundle_dir = build_bundle(job_dir, compute_hashes=compute_hashes)
-    target = Path(output_path).resolve() if output_path else bundle_dir / "opentune.cvf"
+    target = Path(output_path).resolve() if output_path else bundle_dir / "copyvocal.cvf"
     bundle["producer"]["bundlePath"] = str(target)
     write_json(target, bundle)
     return {
@@ -645,13 +645,13 @@ def export_bundle(job_dir: str | Path, output_path: str | Path | None = None,
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Export a CopyVocal job as an OpenTune .cvf bundle.")
+    parser = argparse.ArgumentParser(description="Export a CopyVocal job as a .cvf document.")
     parser.add_argument("job_dir", type=Path, help="CopyVocal output directory (contains job.json)")
     parser.add_argument("-o", "--output", type=Path, default=None, help="Output .cvf path")
     parser.add_argument("--no-hash", action="store_true", help="Skip media SHA-256 hashing")
     args = parser.parse_args(argv)
     summary = export_bundle(args.job_dir, args.output, compute_hashes=not args.no_hash)
-    print(f"OpenTune bundle: {summary['bundle']}")
+    print(f"CopyVocal file: {summary['bundle']}")
     print(f"  notes={summary['noteCount']} handles={summary['handleCount']} "
           f"frames={summary['frameCount']} timingChanged={summary['timingChanged']}")
     return 0

@@ -59,7 +59,7 @@ class JobRequest:
     verify_timing: bool = False
     analyze_only: bool = False
     skip_analysis: bool = False
-    export_opentune: bool = False
+    export_copyvocal_file: bool = False
 
     @classmethod
     def from_defaults(cls) -> "JobRequest":
@@ -184,8 +184,8 @@ class JobRequest:
             arguments.append("--analyze-only")
         if self.skip_analysis:
             arguments.append("--skip-analysis")
-        if self.export_opentune:
-            arguments.append("--export-opentune")
+        if self.export_copyvocal_file:
+            arguments.append("--export-cvf")
         return arguments
 
     def to_prefs(self) -> dict:

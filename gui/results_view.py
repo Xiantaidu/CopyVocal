@@ -146,16 +146,16 @@ class ResultsInterface(ScrollArea):
                                self.stop_button.setText(tr("button_stop"))))
         self.open_report_button = PushButton(tr("button_open_report"), audio_card)
         self.open_output_button = PushButton(tr("button_open_output"), audio_card)
-        self.export_opentune_button = PushButton(tr("button_export_opentune"), audio_card)
+        self.export_copyvocal_file_button = PushButton(tr("button_export_copyvocal_file"), audio_card)
         self._bind_tr(lambda: (self.open_report_button.setText(tr("button_open_report")),
                                self.open_output_button.setText(tr("button_open_output")),
-                               self.export_opentune_button.setText(tr("button_export_opentune"))))
+                               self.export_copyvocal_file_button.setText(tr("button_export_copyvocal_file"))))
         for widget in (self.listening_label, self.audio_combo, self.play_button, self.stop_button):
             audio_layout.addWidget(widget)
         audio_layout.addStretch(1)
         audio_layout.addWidget(self.open_report_button)
         audio_layout.addWidget(self.open_output_button)
-        audio_layout.addWidget(self.export_opentune_button)
+        audio_layout.addWidget(self.export_copyvocal_file_button)
         self.vBoxLayout.addWidget(audio_card)
 
     def _refresh_table_titles(self) -> None:
@@ -192,7 +192,7 @@ class ResultsInterface(ScrollArea):
         self.audio_combo.currentIndexChanged.connect(self._pick_audio)
         self.open_report_button.clicked.connect(self._open_report)
         self.open_output_button.clicked.connect(self._open_output)
-        self.export_opentune_button.clicked.connect(self._export_opentune)
+        self.export_copyvocal_file_button.clicked.connect(self._export_copyvocal_file)
         self.player.errorOccurred.connect(self._on_player_error)
 
     def refresh(self, output: str) -> None:
@@ -215,7 +215,7 @@ class ResultsInterface(ScrollArea):
         self.open_output_button.setEnabled(path.is_dir())
         required = ("job.json", "teacher.analysis.json", "student.analysis.json",
                     "alignment.json", "target_pitch.npz")
-        self.export_opentune_button.setEnabled(path.is_dir()
+        self.export_copyvocal_file_button.setEnabled(path.is_dir()
                                                and all((path / name).is_file() for name in required))
 
     @staticmethod
@@ -284,17 +284,17 @@ class ResultsInterface(ScrollArea):
         if path.is_dir():
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
 
-    def _export_opentune(self) -> None:
-        """Write <output>/opentune.cvf from the finished job's artifacts."""
-        from application.opentune_bundle import export_bundle
+    def _export_copyvocal_file(self) -> None:
+        """Write <output>/copyvocal.cvf from the finished job's artifacts."""
+        from application.copyvocal_file import export_bundle
 
         try:
             summary = export_bundle(Path(self._output_path()))
         except Exception as error:  # noqa: BLE001 - surfaced to the user verbatim
-            QMessageBox.warning(self, tr("dialog_export_opentune_failed"), str(error))
+            QMessageBox.warning(self, tr("dialog_export_copyvocal_file_failed"), str(error))
             return
-        QMessageBox.information(self, tr("dialog_export_opentune_done"),
-                                tr("dialog_export_opentune_body", path=summary["bundle"]))
+        QMessageBox.information(self, tr("dialog_export_copyvocal_file_done"),
+                                tr("dialog_export_copyvocal_file_body", path=summary["bundle"]))
 
     def _output_path(self) -> str:
         return self._output.strip() or str(ROOT / "outputs")

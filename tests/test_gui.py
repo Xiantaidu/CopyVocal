@@ -117,7 +117,7 @@ class JobRequestTests(unittest.TestCase):
                                max_chunk_seconds=12.5, context_seconds=0.5,
                                minimum_alignment_quality=0.5, maximum_stretch=2.0, log_floor=1e-6,
                                include_game=False, allow_acoustic_fallback=True, experiments=True,
-                               verify=False, verify_timing=True, export_opentune=True)
+                               verify=False, verify_timing=True, export_copyvocal_file=True)
         argv = request.argv()
         for flag, value in (("--onnx-device", "cpu"), ("--vocoder-device", "cpu"), ("--language", "en"),
                             ("--max-chunk-seconds", "12.5"), ("--context-seconds", "0.5"),
@@ -125,7 +125,7 @@ class JobRequestTests(unittest.TestCase):
                             ("--log-floor", "1e-06")):
             self.assertEqual(argv[argv.index(flag) + 1], value, flag)
         for flag in ("--no-game", "--allow-acoustic-fallback", "--experiments", "--no-verify",
-                     "--verify-timing", "--export-opentune"):
+                     "--verify-timing", "--export-cvf"):
             self.assertIn(flag, argv)
         self.assertNotIn("--skip-analysis", argv)
         self.assertNotIn("--analyze-only", argv)
@@ -189,7 +189,7 @@ class JobRequestTests(unittest.TestCase):
         self.assertEqual(argv[argv.index("--config") + 1], str(request.config_path()))
 
     def test_prefs_round_trip_ignores_unknown_and_invalid_values(self):
-        request = self.request(language="en", experiments=True, export_opentune=True,
+        request = self.request(language="en", experiments=True, export_copyvocal_file=True,
                                max_chunk_seconds=7.5)
         values = request.to_prefs()
         values["unknown_key"] = 1
@@ -199,7 +199,7 @@ class JobRequestTests(unittest.TestCase):
         self.assertEqual(restored.language, JobRequest.from_defaults().language)
         self.assertAlmostEqual(restored.max_chunk_seconds, JobRequest.from_defaults().max_chunk_seconds)
         self.assertTrue(restored.experiments)
-        self.assertTrue(restored.export_opentune)
+        self.assertTrue(restored.export_copyvocal_file)
         self.assertFalse(hasattr(restored, "unknown_key"))
 
     def test_suggested_output_follows_the_student_name(self):

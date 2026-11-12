@@ -195,8 +195,8 @@ class MainWindow(FluentWindow):
         return self.options.verify_timing_check
 
     @property
-    def export_opentune_check(self):
-        return self.options.export_opentune_check
+    def export_copyvocal_file_check(self):
+        return self.options.export_copyvocal_file_check
 
     @property
     def analyze_check(self):
@@ -307,8 +307,8 @@ class MainWindow(FluentWindow):
         return self.results.open_output_button
 
     @property
-    def export_opentune_button(self):
-        return self.results.export_opentune_button
+    def export_copyvocal_file_button(self):
+        return self.results.export_copyvocal_file_button
 
     @property
     def tabs(self):
