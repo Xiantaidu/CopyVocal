@@ -25,6 +25,11 @@ _TARGET_INTERP_MAX_GAP = 0.030
 # resolution and are not audible in CopyVocal's rendered audio. A short median
 # over voiced runs keeps the exported curve and a consumer's render consistent with that audio.
 _TARGET_MEDIAN_WINDOW = 5
+# A source->output step wider than this means the teacher has material the
+# student recording does not cover (intro, instrumental break, a repeated
+# chorus). The time grid represents it as a near-vertical step so the gap stays
+# silent instead of being interpolated into the student's audio.
+_MAX_GAP_JUMP_SECONDS = 0.5
 
 
 def _finite(value: Any, default: float = 0.0) -> float:
@@ -398,6 +403,19 @@ def _build_time_grid(regions: Sequence[dict], duration: float) -> list[dict]:
         if student_end > student_start:
             pairs.append((student_start, teacher_start))
             pairs.append((student_end, teacher_end))
+
+    # Teacher material with no student counterpart must become a jump, not a
+    # stretch. A student performance that starts 22 s into the teacher recording
+    # would otherwise interpolate its first 0.16 s across those 22 s. Pin the
+    # source position just before the gap and again a hair later at the teacher's
+    # entry point: the source axis barely advances while the output axis covers
+    # the teacher-only span, so it stays silent instead of stretching audio.
+    if len(pairs) > 1:
+        first_source, first_output = pairs[1]
+        if first_output > first_source + _MAX_GAP_JUMP_SECONDS:
+            # Hold the source still at the gap entry, then jump the output axis.
+            pairs.insert(1, (first_source - 0.001, first_source))
+            pairs[2] = (first_source, first_output)
 
     cleaned: list[tuple[float, float]] = []
     for source, output in pairs:

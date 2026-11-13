@@ -233,6 +233,9 @@ def _relation(teacher: dict, student: dict) -> str:
     return "substitution"
 
 
+_REPEAT_MATERIAL_RATIO = 2.5
+
+
 def _correspond(teacher: list[dict], student: list[dict], teacher_duration: float,
                 student_duration: float) -> tuple[list[tuple[int | None, int | None]], dict]:
     n, m = len(teacher), len(student)
@@ -313,6 +316,57 @@ def _correspond(teacher: list[dict], student: list[dict], teacher_duration: floa
                 "candidate_student_unit_indices": student_candidates,
                 "reason": "multiple_lexically_equivalent_paths_progress_is_only_weak_evidence"}
     return pairs, ambiguities
+
+
+def _snap_to_contiguous_window(teacher: list[dict], student: list[dict],
+                               pairs: list[tuple[int | None, int | None]]
+                               ) -> list[tuple[int | None, int | None]]:
+    """Re-align student units onto one uninterrupted run of teacher units.
+
+    A teacher recording often repeats a chorus while the student sings it once.
+    Lexical matching cannot tell the repetitions apart, so the minimum-cost path
+    may begin in one chorus and hop to a later one partway through. That path is
+    a valid edit script, but it maps a short student span across a large stretch
+    of teacher time and turns every skipped repetition into a silent hole in the
+    middle of the song.
+
+    This only applies when the teacher carries far more material than the student
+    sang. With comparable word counts the edit script's own gaps are real --
+    dropped or inserted words -- and rewriting them would hide genuine
+    misalignment, so the pairs are returned unchanged.
+    """
+    n, m = len(teacher), len(student)
+    if n < m or m < 2 or n < m * _REPEAT_MATERIAL_RATIO:
+        return pairs
+
+    weights = {"matched": 0.0, "homophone": 0.16, "substitution": 1.30}
+    student_span = student[-1]["end"] - student[0]["start"]
+    best: tuple[float, int, float] | None = None
+    for start_index in range(0, n - m + 1):
+        lexical = 0.0
+        for offset in range(m):
+            lexical += weights[_relation(teacher[start_index + offset], student[offset])]
+        span = teacher[start_index + m - 1]["end"] - teacher[start_index]["start"]
+        ratio = span / student_span if student_span > 0 else 1.0
+        # A performance can be retimed, but not by an order of magnitude.
+        penalty = 0.0 if 0.5 <= ratio <= 2.0 else abs(ratio - 1.0)
+        total = lexical + penalty
+        if best is None or total < best[0]:
+            best = (total, start_index, ratio)
+
+    if best is None:
+        return pairs
+
+    _, start_index, _ = best
+    window = {start_index + offset: offset for offset in range(m)}
+
+    result: list[tuple[int | None, int | None]] = []
+    for index in range(n):
+        if index in window:
+            result.append((index, window[index]))
+        else:
+            result.append((index, None))
+    return result
 
 
 def _local_anchors(teacher: dict, student: dict) -> tuple[list[float], list[float], str]:
@@ -518,6 +572,10 @@ def build_alignment(teacher: dict, student: dict, *, min_quality: float = 0.35,
     warnings = teacher_warnings + student_warnings
     matches, active_regions = [], []
     pairs, ambiguities = _correspond(tw, sw, td, sd)
+    # The edit script alone can split a one-pass student performance across
+    # several repeats of a teacher chorus; snap it onto a single run so the
+    # skipped repetitions stay whole instead of fragmenting the timeline.
+    pairs = _snap_to_contiguous_window(tw, sw, pairs)
     for ti, si in pairs:
         t, s = (tw[ti] if ti is not None else None), (sw[si] if si is not None else None)
         match = {"teacher_index": t["index"] if t else None,
