@@ -73,8 +73,42 @@ class AlignmentTests(unittest.TestCase):
         region = plan["regions"][0]
         self.assertEqual(region["anchor_strategy"], "vowel_weighted")
         self.assertAlmostEqual(region["teacher_anchors"][1], 0.06)
+        self.assertAlmostEqual(region["teacher_anchors"][2], 0.12)
+        # Consonant preserves natural length (1:1)
         self.assertAlmostEqual(map_times(plan, [0.03])[0], 0.03)
-        self.assertAlmostEqual(map_times(plan, [0.33])[0], 0.18)
+        # Vowel onset (first 1/4) preserves natural length (1:1)
+        self.assertAlmostEqual(map_times(plan, [0.09])[0], 0.09)
+        # Only vowel sustain (last 3/4) absorbs the stretch
+        self.assertAlmostEqual(map_times(plan, [0.33])[0], 0.19875)
+
+    def test_pure_vowel_preserves_first_quarter_and_stretches_last_three_quarters(self):
+        teacher = analysis(["啊"], [(0, 0.8)])
+        student = analysis(["啊"], [(0, 0.4)])
+        student["words"][0]["phonemes"] = [{"text": "a", "start": 0, "end": 0.4}]
+        plan = build_alignment(teacher, student)
+        region = plan["regions"][0]
+        self.assertEqual(region["anchor_strategy"], "vowel_weighted")
+        self.assertEqual(region["teacher_anchors"], [0.0, 0.1, 0.8])
+        self.assertEqual(region["student_anchors"], [0.0, 0.1, 0.4])
+        # First 1/4 of pure vowel stays 1:1
+        self.assertAlmostEqual(map_times(plan, [0.05])[0], 0.05)
+        # Last 3/4 of pure vowel is stretched
+        self.assertAlmostEqual(map_times(plan, [0.45])[0], 0.25)
+
+    def test_compression_truncates_at_natural_rate(self):
+        teacher = analysis(["我"], [(0, 0.2)])
+        student = analysis(["我"], [(0, 0.4)])
+        student["words"][0]["phonemes"] = [
+            {"text": "w", "start": 0, "end": 0.08},
+            {"text": "o", "start": 0.08, "end": 0.4}]
+        plan = build_alignment(teacher, student)
+        region = plan["regions"][0]
+        self.assertEqual(region["anchor_strategy"], "vowel_weighted")
+        # In compression, audio plays at 1:1 natural speed up to target duration
+        self.assertEqual(region["teacher_anchors"], [0.0, 0.08, 0.16, 0.2])
+        self.assertEqual(region["student_anchors"], [0.0, 0.08, 0.16, 0.2])
+        self.assertAlmostEqual(map_times(plan, [0.05])[0], 0.05)
+        self.assertAlmostEqual(map_times(plan, [0.15])[0], 0.15)
 
     def test_homophones_and_uncertain_substitutions(self):
         teacher, student = analysis(["在", "你"]), analysis(["再", "他"])

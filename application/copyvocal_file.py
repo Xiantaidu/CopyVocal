@@ -400,9 +400,14 @@ def _build_time_grid(regions: Sequence[dict], duration: float) -> list[dict]:
         student_end = _finite(region.get("student_end", region.get("studentEnd")))
         teacher_start = _finite(region.get("teacher_start", region.get("teacherStart")))
         teacher_end = _finite(region.get("teacher_end", region.get("teacherEnd")))
-        if student_end > student_start:
+        s_anchors = region.get("student_anchors") or region.get("studentAnchors") or []
+        if s_anchors and _finite(s_anchors[-1]) > student_start:
+            effective_student_end = min(student_end, _finite(s_anchors[-1]))
+        else:
+            effective_student_end = student_end
+        if effective_student_end > student_start:
             pairs.append((student_start, teacher_start))
-            pairs.append((student_end, teacher_end))
+            pairs.append((effective_student_end, teacher_end))
 
     # Teacher material with no student counterpart must become a jump, not a
     # stretch. A student performance that starts 22 s into the teacher recording

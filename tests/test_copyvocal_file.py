@@ -168,6 +168,30 @@ class CopyVocalFileTests(unittest.TestCase):
             self.assertEqual(written["producer"]["name"], "CopyVocal")
             self.assertEqual(written["f0"]["hopSize"], 160)
 
+    def test_cvf_preserves_vowel_anchors_and_truncated_time_grid(self):
+        with tempfile.TemporaryDirectory() as directory:
+            job = make_job(Path(directory), timing_changed=True, student_seconds=1.0)
+            write_json(job / "alignment.json", {
+                "version": 1,
+                "teacher_duration": 1.0,
+                "student_duration": 1.0,
+                "matches": [],
+                "regions": [
+                    {"teacher_start": 0.1, "teacher_end": 0.4, "student_start": 0.1, "student_end": 0.6,
+                     "status": "matched", "mode": "synthesize", "quality": 1.0, "unsupported": False,
+                     "teacher_anchors": [0.1, 0.16, 0.22, 0.4],
+                     "student_anchors": [0.1, 0.16, 0.22, 0.4]},
+                ],
+            })
+            bundle, _ = build_bundle(job)
+            region = bundle["regions"][0]
+            self.assertEqual(region["teacherAnchors"], [0.1, 0.16, 0.22, 0.4])
+            self.assertEqual(region["studentAnchors"], [0.1, 0.16, 0.22, 0.4])
+            handles = [h for h in bundle["timeGrid"]["handles"]
+                       if h["kind"] not in ("clipStart", "clipEnd")]
+            self.assertTrue(any(abs(h["sourceSeconds"] - 0.4) < 1e-6 and abs(h["outputSeconds"] - 0.4) < 1e-6
+                                for h in handles))
+
     def test_student_clock_bundle_uses_identity_grid(self):
         with tempfile.TemporaryDirectory() as directory:
             job = make_job(Path(directory), timing_changed=False)

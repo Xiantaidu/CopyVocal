@@ -401,50 +401,93 @@ def _snap_to_contiguous_window(teacher: list[dict], student: list[dict],
 
 
 def _local_anchors(teacher: dict, student: dict) -> tuple[list[float], list[float], str]:
-    """Keep source consonants close to natural length; allocate stretch to vowels."""
-    ts, te = teacher["start"], teacher["end"]
-    ss, se = student["start"], student["end"]
-    phones = student["phonemes"]
-    if not phones or not any(_is_vowel(p["text"]) for p in phones):
-        return [ts, te], [ss, se], "word_linear"
-    boundaries = sorted({ss, se, *(max(ss, min(se, p["start"])) for p in phones),
-                         *(max(ss, min(se, p["end"])) for p in phones)})
-    if len(boundaries) < 3:
-        return [ts, te], [ss, se], "word_linear"
-    source_lengths = np.diff(boundaries)
-    labels = []
-    for left, right in zip(boundaries[:-1], boundaries[1:]):
-        middle = (left + right) / 2
-        label = next((p["text"] for p in phones if p["start"] <= middle < p["end"]), "SP")
-        labels.append(label)
-    vowels = np.array([_is_vowel(label) for label in labels], dtype=bool)
-    if not vowels.any():
-        return [ts, te], [ss, se], "word_linear"
+    """Keep source consonants and vowel onset (first 1/4) natural; stretch only vowel sustain (last 3/4).
+
+    When target is shorter than student (compression), truncate at natural rate and crossfade.
+    """
+    ts, te = float(teacher["start"]), float(teacher["end"])
+    ss, se = float(student["start"]), float(student["end"])
     target_length = te - ts
-    source_consonants = float(source_lengths[~vowels].sum())
-    # Compression can force consonants shorter; reserve at least 35% of the
-    # target syllable for voiced nuclei to avoid collapsed durations.
-    consonant_scale = min(1.0, 0.65 * target_length / max(source_consonants, 1e-9))
-    target_lengths = source_lengths * consonant_scale
-    remaining = target_length - float(target_lengths[~vowels].sum())
-    vowel_weights = source_lengths[vowels].copy()
-    teacher_vowels = [p for p in teacher["phonemes"] if _is_vowel(p["text"])]
-    source_vowels = [p for p in phones if _is_vowel(p["text"])]
-    # Matched vowel identities let the teacher supply relative rhythm, including
-    # syllables with several nuclei.
+    source_length = se - ss
+    if target_length <= 0 or source_length <= 0:
+        return [ts, te], [ss, se], "word_linear"
+
+    phones = student.get("phonemes") or []
+    if not phones or not any(_is_vowel(p.get("text", "")) for p in phones):
+        return [ts, te], [ss, se], "word_linear"
+
+    raw_boundaries = sorted({ss, se,
+                             *(max(ss, min(se, float(p["start"]))) for p in phones),
+                             *(max(ss, min(se, float(p["end"]))) for p in phones)})
+    intervals: list[tuple[float, float, str, bool]] = []
+    for left, right in zip(raw_boundaries[:-1], raw_boundaries[1:]):
+        if right - left <= 1e-6:
+            continue
+        middle = (left + right) / 2
+        label = next((p["text"] for p in phones if float(p["start"]) <= middle < float(p["end"])), "SP")
+        intervals.append((left, right, label, _is_vowel(label)))
+
+    # Split each vowel interval into front 1/4 (onset/transition, not stretched)
+    # and back 3/4 (sustain, stretchable). Consonants remain un-stretched.
+    segments: list[tuple[float, float, str, bool]] = []
+    for left, right, label, is_v in intervals:
+        length = right - left
+        if not is_v:
+            segments.append((left, right, label, False))
+        else:
+            if length > 0.004:
+                split = left + 0.25 * length
+                segments.append((left, split, label, False))
+                segments.append((split, right, label, True))
+            else:
+                segments.append((left, right, label, True))
+
+    if not segments:
+        return [ts, te], [ss, se], "word_linear"
+
+    boundaries = [segments[0][0]] + [s[1] for s in segments]
+    source_lengths = np.array([s[1] - s[0] for s in segments], dtype=float)
+    stretchable = np.array([s[3] for s in segments], dtype=bool)
+
+    if not stretchable.any():
+        if target_length < source_length:
+            return [ts, te], [ss, ss + target_length], "word_linear"
+        return [ts, te], [ss, se], "word_linear"
+
+    # Compression: truncate at natural 1:1 rate so audio is not sped up;
+    # crossfade/fade-out will handle the boundary release.
+    if target_length < source_length:
+        s_cut = ss + target_length
+        cut_boundaries = [b for b in boundaries if b < s_cut - 1e-6]
+        cut_boundaries.append(s_cut)
+        target_boundaries = [ts + (b - ss) for b in cut_boundaries]
+        return target_boundaries, cut_boundaries, "vowel_weighted"
+
+    # Stretching: consonants and vowel front 1/4 stay at natural length (1:1);
+    # vowel posterior 3/4 absorbs all remaining stretch.
+    fixed_length = float(source_lengths[~stretchable].sum())
+    remaining = target_length - fixed_length
+    target_lengths = source_lengths.copy()
+    target_lengths[~stretchable] = source_lengths[~stretchable]
+
+    vowel_weights = source_lengths[stretchable].copy()
+    teacher_vowels = [p for p in teacher.get("phonemes") or [] if _is_vowel(p.get("text", ""))]
+    source_vowels = [p for p in phones if _is_vowel(p.get("text", ""))]
     if (len(teacher_vowels) == len(source_vowels)
             and [_phone(p["text"]) for p in teacher_vowels]
             == [_phone(p["text"]) for p in source_vowels]):
-        for interval, is_vowel in enumerate(vowels):
-            if is_vowel:
-                midpoint = (boundaries[interval] + boundaries[interval + 1]) / 2
-                for source_phone, teacher_phone in zip(source_vowels, teacher_vowels):
-                    if source_phone["start"] <= midpoint < source_phone["end"]:
-                        vowel_weights[np.count_nonzero(vowels[:interval])] = (
-                            (teacher_phone["end"] - teacher_phone["start"])
-                            * source_lengths[interval] / (source_phone["end"] - source_phone["start"]))
-                        break
-    target_lengths[vowels] = remaining * vowel_weights / max(float(vowel_weights.sum()), 1e-9)
+        stretch_indices = np.flatnonzero(stretchable)
+        for idx, seg_idx in enumerate(stretch_indices):
+            midpoint = (segments[seg_idx][0] + segments[seg_idx][1]) / 2
+            for source_phone, teacher_phone in zip(source_vowels, teacher_vowels):
+                if float(source_phone["start"]) <= midpoint < float(source_phone["end"]):
+                    s_dur = float(source_phone["end"]) - float(source_phone["start"])
+                    t_dur = float(teacher_phone["end"]) - float(teacher_phone["start"])
+                    if s_dur > 1e-6:
+                        vowel_weights[idx] = t_dur * source_lengths[seg_idx] / s_dur
+                    break
+
+    target_lengths[stretchable] = remaining * vowel_weights / max(float(vowel_weights.sum()), 1e-9)
     target_boundaries = np.concatenate(([ts], ts + np.cumsum(target_lengths)))
     target_boundaries[-1] = te
     return target_boundaries.tolist(), [float(x) for x in boundaries], "vowel_weighted"
