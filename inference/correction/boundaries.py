@@ -94,6 +94,30 @@ def _source_blockers(regions: list[dict], words: list[tuple[int, float, float]],
     return _merge(blockers)
 
 
+def _local_source_rate(region: dict, kind: str) -> float:
+    """Source seconds per output second next to this region's boundary.
+
+    The context is rendered by a linear map, so its source span must use the
+    same local rate as the neighbouring lexical region; otherwise the source
+    audio changes speed at the seam."""
+    teacher = region.get("teacher_anchors") or [region.get("teacher_start"), region.get("teacher_end")]
+    student = region.get("student_anchors") or [region.get("student_start"), region.get("student_end")]
+    try:
+        teacher = [float(value) for value in teacher]
+        student = [float(value) for value in student]
+    except (TypeError, ValueError):
+        return 1.0
+    if len(teacher) != len(student) or len(teacher) < 2:
+        return 1.0
+    if kind == "release":
+        target_span, source_span = teacher[-1] - teacher[-2], student[-1] - student[-2]
+    else:
+        target_span, source_span = teacher[1] - teacher[0], student[1] - student[0]
+    if target_span <= _EPSILON or source_span <= 0:
+        return 1.0
+    return min(4.0, max(0.25, source_span / target_span))
+
+
 def _context(kind: str, edge: float, target_limit: float, region_index: int,
              regions: list[dict], words: list[tuple[int, float, float]],
              student_duration: float) -> dict | None:
@@ -111,6 +135,7 @@ def _context(kind: str, edge: float, target_limit: float, region_index: int,
             source_limit = max(source_limit, min(source_edge, end))
     target_length = min(abs(target_limit - edge),
                         _RELEASE_SECONDS if kind == "release" else _ATTACK_SECONDS)
+    source_length = target_length * _local_source_rate(region, kind)
     source_room = abs(source_limit - source_edge)
     strategy = "continuation"
     if source_room <= _EPSILON:
@@ -123,10 +148,10 @@ def _context(kind: str, edge: float, target_limit: float, region_index: int,
             return None
         source_start = source_end = source_min = source_max = point
     elif kind == "release":
-        source_start, source_end = source_edge, min(source_limit, source_edge + target_length)
+        source_start, source_end = source_edge, min(source_limit, source_edge + source_length)
         source_min, source_max = source_edge, source_limit
     else:
-        source_start, source_end = max(source_limit, source_edge - target_length), source_edge
+        source_start, source_end = max(source_limit, source_edge - source_length), source_edge
         source_min, source_max = source_limit, source_edge
     if target_length <= _EPSILON:
         return None

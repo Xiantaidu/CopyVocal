@@ -166,5 +166,69 @@ class AlignmentTests(unittest.TestCase):
         self.assertTrue(any("estimated internal" in warning for warning in plan["warnings"]))
 
 
+    def test_maximum_stretch_boundary_is_inclusive(self):
+        # 0.2 / 0.8 evaluates to 0.24999999999999997; the old strict comparison
+        # muted a word that the user's 4x limit explicitly allows.
+        teacher = {"duration": 0.4, "words": [
+            {"text": "我", "start": 0.1, "end": 0.3, "quality": 0.95}], "pitch": {}, "notes": []}
+        student = {"duration": 0.9, "words": [
+            {"text": "我", "start": 0.0, "end": 0.8, "quality": 0.95}], "pitch": {}, "notes": []}
+        plan = build_alignment(teacher, student, max_stretch=4.0)
+        region = next(r for r in plan["regions"] if r.get("status") == "matched")
+        self.assertFalse(region["extreme_stretch"])
+        self.assertEqual(region["mode"], "synthesize")
+        self.assertEqual(plan["metrics"]["extreme_stretch_count"], 0)
+
+    def test_repeat_snap_preserves_an_extra_student_word(self):
+        # The snap chooses a contiguous teacher window without turning an
+        # inserted student word into a forced positional match.
+        teacher = analysis(["我", "爱", "你", "啊", "我", "爱", "你", "啊", "我", "爱"])
+        student = analysis(["我", "爱", "呀", "你"])
+        plan = build_alignment(teacher, student)
+        extra = next(m for m in plan["matches"] if m["student_text"] == "呀")
+        self.assertIsNone(extra["teacher_index"])
+        self.assertEqual(extra["status"], "extra")
+        matched = [(m["teacher_text"], m["student_text"]) for m in plan["matches"]
+                   if m["status"] == "matched"]
+        self.assertEqual(matched, [("我", "我"), ("爱", "爱"), ("你", "你")])
+        self.assertGreaterEqual(plan["metrics"]["status_counts"].get("extra", 0), 1)
+
+    def test_muted_word_audio_is_not_reused_by_a_later_fallback(self):
+        teacher = analysis(["我", "你", "他"], [(0, 0.5), (0.5, 1.0), (1.5, 2.0)], 2.0)
+        student = analysis(["我", "你", "他"], [(0, 0.5), (0.5, 1.0), (1.5, 2.0)], 2.0)
+        student["words"][1]["quality"] = 0.05
+        times = np.arange(0, 2.0, 0.05)
+        for track, voiced_from, voiced_to in ((teacher, 1.0, 1.5), (student, 0.5, 1.5)):
+            voiced = [bool(voiced_from <= t < voiced_to) for t in times]
+            track["pitch"] = {"times": times.tolist(), "voiced": voiced,
+                              "f0_hz": [200.0 if value else 0.0 for value in voiced]}
+        plan = build_alignment(teacher, student, allow_acoustic_fallback=True)
+        muted = [r for r in plan["regions"] if r["mode"] == "mute"
+                 and r.get("student_end", 0) > r.get("student_start", 0)]
+        fallback = [r for r in plan["regions"] if r["mode"] == "acoustic_fallback"]
+        self.assertTrue(muted)
+        self.assertTrue(fallback)
+        for region in fallback:
+            for blocked in muted:
+                self.assertFalse(region["student_start"] < blocked["student_end"]
+                                 and blocked["student_start"] < region["student_end"])
+
+    def test_one_phone_per_token_uses_the_aligner_boundaries(self):
+        from inference.alignment.planner import _units
+        payload = {"duration": 1.0, "words": [{
+            "text": "君・きみ", "start": 0.0, "end": 0.6, "quality": 1.0,
+            "phonemes": [{"text": "ki", "start": 0.0, "end": 0.25},
+                         {"text": "mi", "start": 0.3, "end": 0.6}]}],
+            "pitch": {}, "notes": []}
+        units, _ = _units(payload, 1.0)
+        self.assertEqual([unit["text"] for unit in units], ["君", "きみ"])
+        self.assertAlmostEqual(units[0]["start"], 0.0)
+        self.assertAlmostEqual(units[0]["end"], 0.3)
+        self.assertAlmostEqual(units[1]["start"], 0.3)
+        self.assertAlmostEqual(units[1]["end"], 0.6)
+        self.assertFalse(any(unit["estimated_timing"] for unit in units))
+        self.assertEqual([unit["phonemes"][0]["text"] for unit in units], ["ki", "mi"])
+
+
 if __name__ == "__main__":
     unittest.main()

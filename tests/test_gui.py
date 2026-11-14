@@ -884,6 +884,27 @@ class LayoutCompositionTests(unittest.TestCase):
             set_language("zh")
             self.window._on_language_changed("zh")
 
+    def test_recording_and_interface_languages_are_saved_separately(self):
+        # Regression: both used the "language" key, so closing with a Japanese
+        # recording language and an English interface restored "en" as the
+        # recording language and silently ran the wrong ASR/alignment models.
+        self.window.language_combo.setCurrentText("ja")
+        interface = self.window.settings.language_combo
+        interface.setCurrentIndex(interface.findData("en"))
+        self.window._save_prefs()
+        values = json.loads(gui_window.PREFS_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(values["language"], "ja")
+        self.assertEqual(values["ui_language"], "en")
+        self.assertEqual(JobRequest.from_prefs(values, JobRequest.from_defaults()).language, "ja")
+
+        # Starting a job rewrites the request keys but must keep the window's
+        # theme and interface language.
+        self.window.correction._save_prefs()
+        kept = json.loads(gui_window.PREFS_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(kept["language"], "ja")
+        self.assertEqual(kept["ui_language"], "en")
+        self.assertEqual(kept["theme"], values["theme"])
+
     def test_wrapped_text_is_not_clipped(self):
         # A wrapped label reports one line as its minimum unless height-for-width
         # is enabled, which silently cut the last line of the hint sentences.

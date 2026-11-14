@@ -96,20 +96,25 @@ def _project(desired: np.ndarray, lower: np.ndarray, upper: np.ndarray,
 
 
 def _absorb(duration: np.ndarray, kinds: list[str], energy: np.ndarray,
-            hard_upper: np.ndarray, remainder: float,
-            minimum_seconds: float) -> tuple[np.ndarray, int | None, float]:
-    """Hand an unfittable remainder to the most elastic non-consonant segments.
+            hard_upper: np.ndarray, remainder: float) -> tuple[np.ndarray, int | None, float]:
+    """Grow an unfittable remainder into the most elastic non-consonant segments.
 
-    Anything left over is returned so the caller reports the window unresolved."""
+    A negative remainder means the target is below the sum of the hard lower
+    bounds, which the projection already returned. Shrinking past those bounds
+    would produce non-physical segments (even negative durations), so it is
+    left to the caller to report the window as infeasible. Anything still
+    unfitted is returned so the caller can keep the searched warp."""
     duration, chosen = duration.copy(), None
+    if remainder < -_TOLERANCE:
+        return duration, None, remainder
     for group in _RESIDUAL_ORDER:
-        if abs(remainder) <= _TOLERANCE:
+        if remainder <= _TOLERANCE:
             break
         indices = [index for index, kind in enumerate(kinds) if kind in group]
         if not indices:
             continue
         indices.sort(key=lambda index: float(energy[index]))
-        while abs(remainder) > _TOLERANCE:
+        while remainder > _TOLERANCE:
             room = [max(0.0, float(hard_upper[index]) - duration[index]) for index in indices]
             if sum(room) <= _EPSILON:
                 break
@@ -117,10 +122,10 @@ def _absorb(duration: np.ndarray, kinds: list[str], energy: np.ndarray,
             for index, available in zip(list(indices), room):
                 if available <= _EPSILON:
                     continue
-                applied = max(-available, min(available, share))
+                applied = min(available, share)
                 duration[index] += applied
                 remainder -= applied
-                if abs(remainder) <= _TOLERANCE:
+                if remainder <= _TOLERANCE:
                     break
             indices = [index for index in indices
                        if duration[index] < float(hard_upper[index]) - _EPSILON]
@@ -168,11 +173,13 @@ def plan_segment_durations(segments: list[dict], desired: np.ndarray, target: fl
         # Consonants are never asked to absorb time; when only they remain, the
         # window is infeasible and the caller keeps the searched warp.
         duration, residual_segment, remainder = _absorb(
-            duration, kinds, energy, hard_upper, remainder, minimum_seconds)
+            duration, kinds, energy, hard_upper, remainder)
         residual_policy = "quiet_rest_then_span_then_vowel"
     if abs(remainder) > _TOLERANCE:
         raise DurationBudgetError(
             f"Window cannot be timed within phoneme limits; {remainder:.6f} s remains unfitted.")
+    if not np.isfinite(duration).all() or np.any(duration <= 0):
+        raise DurationBudgetError("Window duration planning produced non-positive segments.")
 
     rates = duration / np.maximum(source, _EPSILON)
     reference = np.where(native > 0, native, source)

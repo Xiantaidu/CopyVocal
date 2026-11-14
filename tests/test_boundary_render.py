@@ -92,6 +92,31 @@ class BoundaryRenderingTests(unittest.TestCase):
         self.assertGreater(len(vocoder.asserted_source), 0)
         self.assertEqual(float(np.max(np.abs(vocoder.asserted_source))), 0)
 
+    def test_attack_context_cannot_borrow_the_attacked_word_onset(self):
+        class SourceCheckingVocoder(RecordingVocoder):
+            win_size = 2048
+
+            def mel(self, audio):
+                self.asserted_source = np.asarray(audio).copy()
+                return np.zeros((128, (len(audio) + 511) // 512), dtype=np.float32)
+
+        rate = 44100
+        audio = np.zeros(rate, dtype=np.float32)
+        audio[int(.4 * rate):] = 10
+        vocoder = SourceCheckingVocoder()
+        # The region continues to .6, but the attack context ends at the word's
+        # onset (.4). Its STFT window must not reach the marker after .4.
+        regions = [{"student_start": .1, "student_end": .6}]
+        contexts = [{"kind": "attack", "teacher_start": .32, "teacher_end": .4,
+                     "source_strategy": "continuation", "source_region_index": 0,
+                     "student_start": .32, "student_end": .4,
+                     "student_limit_start": .1, "student_limit_end": .4}]
+        times, source = np.array([.35]), np.array([.35])
+        mel = np.zeros((128, 1), np.float32)
+        _context_mel(audio, vocoder, contexts, regions, times, source, np.array([False]), mel)
+        self.assertGreater(len(vocoder.asserted_source), 0)
+        self.assertEqual(float(np.max(np.abs(vocoder.asserted_source))), 0)
+
     def test_held_release_follows_reference_decay_without_changing_word_gain(self):
         rate = 44100
         teacher = np.ones(rate, dtype=np.float32)

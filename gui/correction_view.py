@@ -401,7 +401,16 @@ class CorrectionInterface(ScrollArea):
 
         try:
             PREFS_PATH.parent.mkdir(parents=True, exist_ok=True)
-            PREFS_PATH.write_text(json.dumps(self._collect().to_prefs(), indent=2) + "\n",
+            # Merge instead of replacing: this also runs when a job starts, and
+            # the window owns theme/ui_language, which must survive that write.
+            try:
+                values = json.loads(PREFS_PATH.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                values = {}
+            if not isinstance(values, dict):
+                values = {}
+            values.update(self._collect().to_prefs())
+            PREFS_PATH.write_text(json.dumps(values, indent=2) + "\n",
                                   encoding="utf-8")
         except OSError:
             pass

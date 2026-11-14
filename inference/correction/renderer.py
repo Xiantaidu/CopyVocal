@@ -115,7 +115,10 @@ def _context_mel(audio: np.ndarray, vocoder, contexts: list[dict], regions: list
             upper = (float(region["student_end"]) if context["source_strategy"] == "hold"
                      else float(context["student_limit_end"]))
         else:
-            lower, upper = float(context["student_limit_start"]), float(region["student_end"])
+            # Stop at this context's own source end (the lexical region's start);
+            # the region end belongs to the attacked word and is up to a full
+            # STFT window away, which would let its onset leak into the context.
+            lower, upper = float(context["student_limit_start"]), float(context["student_end"])
         # Keep the global frame grid where possible; clip and reflect at lexical
         # limits rather than letting a 46 ms STFT window borrow the next word.
         queries = source_times[selected]

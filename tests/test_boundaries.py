@@ -109,6 +109,14 @@ class BoundaryContextTests(unittest.TestCase):
         attack = next(c for c in contexts if c["kind"] == "attack")
         self.assertGreaterEqual(attack["student_start"], 2)
 
+    def test_context_source_span_follows_the_local_region_rate(self):
+        # This word is twice as long in student time (2.0 s / 1.0 s); a 60 ms
+        # release must therefore read 120 ms of source so the seam keeps speed.
+        regions = [supported(1.0, 2.0, 1.0, 3.0), gap(2.0, 3.0)]
+        release, = build_boundary_context(regions, [], 3, 4)
+        self.assertAlmostEqual(release["teacher_end"] - release["teacher_start"], 0.06)
+        self.assertAlmostEqual(release["student_end"] - release["student_start"], 0.12)
+
     def test_track_bounds_clip_context_and_unknown_gaps_are_not_assumed_safe(self):
         regions = [gap(-1, 0.01), supported(0.01, 0.99, 0.01, 0.99), gap(0.99, 2)]
         for context in build_boundary_context(regions, [], 1, 1):

@@ -79,6 +79,23 @@ class DurationBudgetTests(unittest.TestCase):
         self.assertAlmostEqual(float(duration[1]), 0.10, places=9)
         self.assertFalse(info["consonant_stretched"])
 
+    def test_target_below_all_lower_bounds_is_refused_not_negative(self):
+        # Regression: the vowel used to be shrunk to -175 ms, then the
+        # constrained mapping raised a bare ValueError and aborted the render.
+        segments = [segment(0.0, 0.5, "consonant", native=0.5),
+                    segment(0.5, 1.0, "vowel", native=0.5)]
+        with self.assertRaises(DurationBudgetError):
+            plan_segment_durations(segments, np.array([0.05, 0.05]), 0.1)
+
+    def test_constrained_window_refuses_an_unfittable_compression(self):
+        # The caller turns this into "constraint not applied" and keeps the
+        # searched warp instead of aborting the render.
+        segments = [segment(0.0, 0.5, "consonant", native=0.5),
+                    segment(0.5, 1.0, "vowel", native=0.5)]
+        with self.assertRaises(DurationBudgetError):
+            constrain_window_mapping(np.linspace(0.0, 0.1, 11), np.array([0.0, 0.1]),
+                                     np.array([0.0, 1.0]), segments, window=(0.0, 0.1))
+
     def test_invalid_inputs_are_rejected(self):
         with self.assertRaises(ValueError):
             plan_segment_durations([], np.array([]), 1.0)

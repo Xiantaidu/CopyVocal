@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import math
 
 import numpy as np
@@ -10,6 +11,7 @@ from scipy.special import logsumexp
 from .durations import DurationBudgetError, constrain_window_mapping, segments_for_window
 
 
+logger = logging.getLogger(__name__)
 _EPSILON = 1e-8
 _GAP_REASON = "voiced_teacher_region_without_lyric_correspondence"
 _MAX_UNSOURCED_GAP_SECONDS = 0.600
@@ -309,6 +311,12 @@ def _constrain(grid: np.ndarray, mapping: np.ndarray, start: float, end: float,
                                                      window=(start, end), context=context)
     except DurationBudgetError as error:
         return mapping, {"applied": False, "reason": "consonant_limits_infeasible",
+                         "detail": str(error)}
+    except ValueError as error:
+        # A constrained re-time that cannot be built is a quality fallback, not
+        # a reason to abort the render: the searched warp is still a valid map.
+        logger.warning("Constrained transition window rejected (%s); keeping the searched warp.", error)
+        return mapping, {"applied": False, "reason": "duration_constraint_failed",
                          "detail": str(error)}
     info["applied"] = True
     return constrained, info

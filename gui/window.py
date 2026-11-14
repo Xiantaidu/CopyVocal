@@ -131,7 +131,10 @@ class MainWindow(FluentWindow):
         return self._prefs.get("theme", "light")
 
     def _prefs_language(self) -> str:
-        return self._prefs.get("language", "zh")
+        # Old preference files wrote the interface language under "language";
+        # keep reading it as the UI choice while "language" now means the
+        # recording language (the pipeline's own key).
+        return self._prefs.get("ui_language", self._prefs.get("language", "zh"))
 
     def _load_prefs(self) -> None:
         self._prefs: dict = {}
@@ -148,7 +151,9 @@ class MainWindow(FluentWindow):
             PREFS_PATH.parent.mkdir(parents=True, exist_ok=True)
             values = self.correction._collect().to_prefs()
             values["theme"] = self.settings.theme()
-            values["language"] = self.settings.language()
+            # "language" is the recording language and comes from to_prefs();
+            # the interface language is a separate preference.
+            values["ui_language"] = self.settings.language()
             PREFS_PATH.write_text(json.dumps(values, indent=2) + "\n", encoding="utf-8")
         except OSError:
             self._show_status("statusbar_prefs_failed")

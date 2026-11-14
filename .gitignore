@@ -15,3 +15,5 @@ ffmpeg.exe
 inference/qwen3asr_dml/bin/*.so
 inference/qwen3asr_dml/bin/*.dylib
 settings/local_resource_audit.json
+.pytest_temp/
+.workbuddy/

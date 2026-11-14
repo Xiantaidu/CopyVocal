@@ -384,6 +384,10 @@ _STRINGS: dict[str, dict[str, str]] = {
         "zh": "该窗口没有音素时间轴",
         "en": "no phone timeline in this window",
     },
+    "region_reason_duration_constraint_failed": {
+        "zh": "无法施加时长约束，保留搜索得到的映射",
+        "en": "duration constraint could not be applied; searched warp kept",
+    },
     "region_reason_no_register_offset": {"zh": "没有可用音区差", "en": "no register offset available"},
     "region_reason_already_at_target_level": {"zh": "已在目标音级", "en": "already at the target level"},
     "region_reason_no_teacher_voiced_level": {

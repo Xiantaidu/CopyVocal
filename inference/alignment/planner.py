@@ -22,6 +22,14 @@ _INITIALS = {"b", "p", "m", "f", "d", "t", "n", "l", "g", "k", "h",
              "j", "q", "x", "zh", "ch", "sh", "r", "z", "c", "s", "y", "w", "ng"}
 _ENGLISH_VOWELS = {"aa", "ae", "ah", "ao", "aw", "ay", "eh", "er", "ey",
                    "ih", "iy", "ow", "oy", "uh", "uw", "ax", "ix", "ux"}
+# Ratio limits are inclusive; without a tolerance, 0.2/0.8 evaluates a few ULPs
+# below 0.25 and a legal 4x boundary would be reported as an extreme stretch.
+_STRETCH_EPSILON = 1e-9
+
+
+def _ratio_within_stretch(ratio: float, maximum: float) -> bool:
+    return (ratio <= maximum * (1.0 + _STRETCH_EPSILON)
+            and ratio >= (1.0 / maximum) * (1.0 - _STRETCH_EPSILON))
 
 
 def _finite(value: Any, default: float = 0.0) -> float:
@@ -183,15 +191,27 @@ def _units(analysis: dict, duration: float) -> tuple[list[dict], list[str]]:
         quality = np.clip(_finite(word.get("quality", word.get("confidence", 0.85)), 0.0), 0.0, 1.0)
         phones = _clean_phones(word, float(start), float(end))
         estimated = len(tokens) > 1
+        # An aligner can supply exactly one phone per token (typical for Japanese
+        # mora units). Those phone times are real evidence, so use them instead
+        # of the equal split that made them unusable.
+        phone_aligned = bool(estimated and phones and len(phones) == len(tokens))
         for position, token in enumerate(tokens):
-            # A multi-character ASR word lacks internal boundaries; equal spans
-            # are an estimate, not a forced alignment.
-            a = float(start + (end - start) * position / len(tokens))
-            b = float(start + (end - start) * (position + 1) / len(tokens))
-            local_phones = phones if not estimated else []
-            if japanese:
-                pronunciation = _japanese_pronunciation(word, token, local_phones, estimated)
+            if phone_aligned:
+                a = float(start) if position == 0 else phones[position]["start"]
+                b = float(end) if position == len(tokens) - 1 else phones[position + 1]["start"]
+                local_phones = [phones[position]]
             else:
+                # A multi-character ASR word lacks internal boundaries; equal
+                # spans are an estimate, not a forced alignment.
+                a = float(start + (end - start) * position / len(tokens))
+                b = float(start + (end - start) * (position + 1) / len(tokens))
+                local_phones = phones if not estimated else []
+            unit_estimated = estimated and not phone_aligned
+            if japanese:
+                pronunciation = _japanese_pronunciation(word, token, local_phones, unit_estimated)
+            else:
+                # Word-level pinyin describes the whole word, so a multi-token
+                # split must derive pronunciation from the phones or the token.
                 pronunciation = _phone(word.get("pinyin", word.get("pronunciation", ""))) if not estimated else ""
                 if not pronunciation and local_phones:
                     pronunciation = " ".join(_phone(p["text"]) for p in local_phones
@@ -199,9 +219,9 @@ def _units(analysis: dict, duration: float) -> tuple[list[dict], list[str]]:
                 if not pronunciation:
                     pronunciation = _pinyin(token)
             unit = {"text": token, "start": a, "end": b, "index": index,
-                           "unit_index": len(result), "quality": float(quality * (0.8 if estimated else 1.0)),
+                           "unit_index": len(result), "quality": float(quality * (0.8 if unit_estimated else 1.0)),
                            "pronunciation": pronunciation, "phonemes": local_phones,
-                           "estimated_timing": estimated}
+                           "estimated_timing": unit_estimated}
             if japanese:
                 unit.update(language="ja", unit_kind=word.get("unit_kind", "word"),
                             identity_basis=word.get("identity_basis", "surface_text"))
@@ -319,8 +339,9 @@ def _correspond(teacher: list[dict], student: list[dict], teacher_duration: floa
 
 
 def _snap_to_contiguous_window(teacher: list[dict], student: list[dict],
-                               pairs: list[tuple[int | None, int | None]]
-                               ) -> list[tuple[int | None, int | None]]:
+                               pairs: list[tuple[int | None, int | None]],
+                               ambiguities: dict
+                               ) -> tuple[list[tuple[int | None, int | None]], dict]:
     """Re-align student units onto one uninterrupted run of teacher units.
 
     A teacher recording often repeats a chorus while the student sings it once.
@@ -337,7 +358,7 @@ def _snap_to_contiguous_window(teacher: list[dict], student: list[dict],
     """
     n, m = len(teacher), len(student)
     if n < m or m < 2 or n < m * _REPEAT_MATERIAL_RATIO:
-        return pairs
+        return pairs, ambiguities
 
     weights = {"matched": 0.0, "homophone": 0.16, "substitution": 1.30}
     student_span = student[-1]["end"] - student[0]["start"]
@@ -355,18 +376,28 @@ def _snap_to_contiguous_window(teacher: list[dict], student: list[dict],
             best = (total, start_index, ratio)
 
     if best is None:
-        return pairs
+        return pairs, ambiguities
 
     _, start_index, _ = best
-    window = {start_index + offset: offset for offset in range(m)}
-
-    result: list[tuple[int | None, int | None]] = []
-    for index in range(n):
-        if index in window:
-            result.append((index, window[index]))
-        else:
-            result.append((index, None))
-    return result
+    # The positional score above only chooses the window. Inside it, run the
+    # real edit script so insertions and deletions stay insertions/deletions
+    # instead of being force-matched by position. Time priors are disabled:
+    # the whole point of the snap is that global progress is not evidence.
+    local_pairs, local_ambiguities = _correspond(
+        teacher[start_index:start_index + m], student, 0.0, 0.0)
+    result: list[tuple[int | None, int | None]] = [(index, None) for index in range(start_index)]
+    result.extend(((start_index + ti) if ti is not None else None, si)
+                  for ti, si in local_pairs)
+    result.extend((index, None) for index in range(start_index + m, n))
+    remapped = {}
+    for (ti, si), info in local_ambiguities.items():
+        if ti is None or si is None:
+            continue
+        item = dict(info)
+        item["candidate_teacher_unit_indices"] = [
+            start_index + value for value in info.get("candidate_teacher_unit_indices", [])]
+        remapped[(start_index + ti, si)] = item
+    return result, remapped
 
 
 def _local_anchors(teacher: dict, student: dict) -> tuple[list[float], list[float], str]:
@@ -499,7 +530,7 @@ def _gap_regions(teacher: dict, student: dict, ts: float, te: float, ss: float,
         # sound could shift every subsequent pairing.
         def compatible(pair: tuple[tuple[float, float], tuple[float, float]]) -> bool:
             (a, b), (c, d) = pair
-            if d <= c or not (1 / max_stretch) <= (b - a) / (d - c) <= max_stretch:
+            if d <= c or not _ratio_within_stretch((b - a) / (d - c), max_stretch):
                 return False
             if len(candidates) == 1:
                 return True
@@ -575,7 +606,7 @@ def build_alignment(teacher: dict, student: dict, *, min_quality: float = 0.35,
     # The edit script alone can split a one-pass student performance across
     # several repeats of a teacher chorus; snap it onto a single run so the
     # skipped repetitions stay whole instead of fragmenting the timeline.
-    pairs = _snap_to_contiguous_window(tw, sw, pairs)
+    pairs, ambiguities = _snap_to_contiguous_window(tw, sw, pairs, ambiguities)
     for ti, si in pairs:
         t, s = (tw[ti] if ti is not None else None), (sw[si] if si is not None else None)
         match = {"teacher_index": t["index"] if t else None,
@@ -603,8 +634,9 @@ def build_alignment(teacher: dict, student: dict, *, min_quality: float = 0.35,
             anchors_t, anchors_s, strategy = _local_anchors(t, s)
             ratio = (t["end"] - t["start"]) / (s["end"] - s["start"])
             local_ratios = np.diff(anchors_t) / np.diff(anchors_s)
-            local_extreme = bool(np.any((local_ratios > max_stretch) | (local_ratios < 1 / max_stretch)))
-            extreme = ratio > max_stretch or ratio < 1 / max_stretch
+            lower_limit, upper_limit = (1 / max_stretch) * (1 - _STRETCH_EPSILON), max_stretch * (1 + _STRETCH_EPSILON)
+            local_extreme = bool(np.any((local_ratios > upper_limit) | (local_ratios < lower_limit)))
+            extreme = not _ratio_within_stretch(ratio, max_stretch)
             unsupported = status == "unresolved" or extreme
             mode = "mute" if unsupported else "synthesize"
             if ambiguity and allow_acoustic_fallback and not extreme:
@@ -664,6 +696,10 @@ def build_alignment(teacher: dict, student: dict, *, min_quality: float = 0.35,
         cursor = region["teacher_end"]
         if region["mode"] in {"synthesize", "acoustic_fallback"}:
             source_cursor = region["student_end"]
+        elif float(region.get("student_end", 0.0)) > float(region.get("student_start", 0.0)):
+            # A matched word that is muted for quality still consumes its student
+            # span; the next gap must not reuse that audio as a fallback.
+            source_cursor = max(source_cursor, float(region["student_end"]))
     if td > cursor:
         regions.extend(_gap_regions(teacher, student, cursor, td, source_cursor, sd,
                                     allow_acoustic_fallback, max_stretch))
